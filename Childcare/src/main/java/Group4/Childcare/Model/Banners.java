@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "banners")
@@ -15,7 +16,7 @@ public class Banners {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "SortOrder")
-    private Integer sortOrder;
+    private int sortOrder;
 
     @Column(name = "StartTime")
     private LocalDateTime startTime;
