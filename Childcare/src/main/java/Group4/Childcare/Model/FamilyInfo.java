@@ -13,7 +13,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class FamilyInfo {
     @Id
-    @Column(name = "FamilyInfoId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID familyInfoId;
+    @Column(name = "FamilyInfoID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID familyInfoID;
 }
-

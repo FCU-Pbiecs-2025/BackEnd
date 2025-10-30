@@ -14,8 +14,8 @@ import java.util.UUID;
 public class Classes {
 
     @Id
-    @Column(name = "ClassId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID classId;
+    @Column(name = "ClassID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID classID;
 
     @Column(name = "ClassName", length = 50)
     private String className;
@@ -35,6 +35,6 @@ public class Classes {
     @Column(name = "AdditionalInfo", length = 100)
     private String additionalInfo;
 
-    @Column(name = "InstitutionId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID institutionId;
+    @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID institutionID;
 }

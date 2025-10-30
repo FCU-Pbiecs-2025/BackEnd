@@ -5,31 +5,29 @@ import Group4.Childcare.Repository.ClassesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class ClassesService {
     @Autowired
-    private ClassesRepository classesRepository;
+    private ClassesRepository repository;
 
-    public List<Classes> getAllClasses() {
-        return classesRepository.findAll();
+    public Classes create(Classes entity) {
+        return repository.save(entity);
     }
 
-    public Classes getClassById(UUID id) {
-        return classesRepository.findById(id);
+    public Optional<Classes> getById(UUID id) {
+        return repository.findById(id);
     }
 
-    public Classes createClass(Classes cls) {
-        return classesRepository.save(cls);
+    public List<Classes> getAll() {
+        return repository.findAll();
     }
 
-    public Classes updateClass(Classes cls) {
-        return classesRepository.update(cls);
-    }
-
-    public boolean deleteClass(UUID id) {
-        return classesRepository.delete(id);
+    public Classes update(UUID id, Classes entity) {
+        entity.setClassID(id);
+        return repository.save(entity);
     }
 }
 

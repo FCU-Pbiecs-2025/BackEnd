@@ -15,21 +15,18 @@ import java.util.UUID;
 public class Cancellation {
 
     @Id
-    @Column(name = "CancellationId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID cancellationId;
+    @Column(name = "CancellationID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID cancellationID;
 
-    @Column(name = "ApplicationId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID applicationId;
+    @Column(name = "ApplicationID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID applicationID;
 
-    @Column(name = "AbandonReasonCode")
-    private Byte abandonReasonCode;
+    @Column(name = "AbandonReason", length = 50)
+    private String abandonReason;
 
     @Column(name = "CancellationDate")
     private LocalDate cancellationDate;
 
     @Column(name = "ConfirmDate")
     private LocalDate confirmDate;
-
-    @Column(name = "ResultDescription", length = 500)
-    private String resultDescription;
 }

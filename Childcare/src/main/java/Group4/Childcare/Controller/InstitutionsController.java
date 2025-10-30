@@ -1,41 +1,44 @@
 package Group4.Childcare.Controller;
 
 import Group4.Childcare.Model.Institutions;
+import Group4.Childcare.DTO.InstitutionSummaryDTO;
 import Group4.Childcare.Service.InstitutionsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/institutions")
+@RequestMapping("/institutions")
 public class InstitutionsController {
     @Autowired
-    private InstitutionsService institutionsService;
+    private InstitutionsService service;
 
-    @GetMapping("")
-    public List<Institutions> getAllInstitutions() {
-        return institutionsService.getAllInstitutions();
+    @PostMapping
+    public ResponseEntity<Institutions> create(@RequestBody Institutions entity) {
+        return ResponseEntity.ok(service.create(entity));
     }
 
     @GetMapping("/{id}")
-    public Institutions getInstitutionById(@PathVariable UUID id) {
-        return institutionsService.getInstitutionById(id);
+    public ResponseEntity<Institutions> getById(@PathVariable UUID id) {
+        Optional<Institutions> entity = service.getById(id);
+        return entity.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/create")
-    public Institutions createInstitution(@RequestBody Institutions institution) {
-        return institutionsService.createInstitution(institution);
+    @GetMapping
+    public List<Institutions> getAll() {
+        return service.getAll();
     }
 
-    @PutMapping("/update")
-    public Institutions updateInstitution(@RequestBody Institutions institution) {
-        return institutionsService.updateInstitution(institution);
+    @PutMapping("/{id}")
+    public ResponseEntity<Institutions> update(@PathVariable UUID id, @RequestBody Institutions entity) {
+        return ResponseEntity.ok(service.update(id, entity));
     }
 
-    @DeleteMapping("/delete/{id}")
-    public boolean deleteInstitution(@PathVariable UUID id) {
-        return institutionsService.deleteInstitution(id);
+    @GetMapping("/summary")
+    public ResponseEntity<List<InstitutionSummaryDTO>> getSummary() {
+        return ResponseEntity.ok(service.getSummaryAll());
     }
 }
-

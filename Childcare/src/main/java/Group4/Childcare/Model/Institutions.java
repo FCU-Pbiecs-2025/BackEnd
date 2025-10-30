@@ -15,14 +15,11 @@ import java.util.UUID;
 public class Institutions {
 
     @Id
-    @Column(name = "InstitutionId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID institutionId;
+    @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID institutionID;
 
     @Column(name = "InstitutionName", length = 100)
     private String institutionName;
-
-    @Column(name = "CommissionUnit", length = 100)
-    private String commissionUnit;
 
     @Column(name = "ContactPerson", length = 50)
     private String contactPerson;
@@ -45,9 +42,6 @@ public class Institutions {
     @Column(name = "Description", length = 1000)
     private String description;
 
-    @Column(name = "AdditionalInfo", length = 100)
-    private String additionalInfo;
-
     @Column(name = "ResponsiblePerson", length = 50)
     private String responsiblePerson;
 
@@ -65,4 +59,10 @@ public class Institutions {
 
     @Column(name = "UpdatedTime")
     private LocalDateTime updatedTime;
+
+    @Column(name = "Latitude", precision = 9, scale = 6)
+    private java.math.BigDecimal latitude;
+
+    @Column(name = "Longitude", precision = 9, scale = 6)
+    private java.math.BigDecimal longitude;
 }

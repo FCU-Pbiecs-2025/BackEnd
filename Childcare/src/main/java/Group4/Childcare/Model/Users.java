@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -14,8 +15,8 @@ import java.util.UUID;
 public class Users {
 
     @Id
-    @Column(name = "UserId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID userId;
+    @Column(name = "UserID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID userID;
 
     @Column(name = "Account", length = 50)
     private String account;
@@ -29,9 +30,30 @@ public class Users {
     @Column(name = "PermissionType")
     private Byte permissionType;
 
-    @Column(name = "FamilyInfoId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID familyInfoId;
+    @Column(name = "Name", length = 10)
+    private String name;
 
-    @Column(name = "InstitutionId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID institutionId;
+    @Column(name = "Gender")
+    private Boolean gender;
+
+    @Column(name = "PhoneNumber", length = 15)
+    private String phoneNumber;
+
+    @Column(name = "MailingAddress", length = 200)
+    private String mailingAddress;
+
+    @Column(name = "Email", length = 100)
+    private String email;
+
+    @Column(name = "BirthDate")
+    private LocalDate birthDate;
+
+    @Column(name = "FamilyInfoID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID familyInfoID;
+
+    @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID institutionID;
+
+    @Column(name = "HouseholdAddress", length = 200)
+    private String householdAddress;
 }

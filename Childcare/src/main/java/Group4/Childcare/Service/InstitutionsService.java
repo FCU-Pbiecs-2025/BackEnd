@@ -1,35 +1,37 @@
 package Group4.Childcare.Service;
 
 import Group4.Childcare.Model.Institutions;
+import Group4.Childcare.DTO.InstitutionSummaryDTO;
 import Group4.Childcare.Repository.InstitutionsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class InstitutionsService {
     @Autowired
-    private InstitutionsRepository institutionsRepository;
+    private InstitutionsRepository repository;
 
-    public List<Institutions> getAllInstitutions() {
-        return institutionsRepository.findAll();
+    public Institutions create(Institutions entity) {
+        return repository.save(entity);
     }
 
-    public Institutions getInstitutionById(UUID id) {
-        return institutionsRepository.findById(id);
+    public Optional<Institutions> getById(UUID id) {
+        return repository.findById(id);
     }
 
-    public Institutions createInstitution(Institutions institution) {
-        return institutionsRepository.save(institution);
+    public List<Institutions> getAll() {
+        return repository.findAll();
     }
 
-    public Institutions updateInstitution(Institutions institution) {
-        return institutionsRepository.update(institution);
+    public Institutions update(UUID id, Institutions entity) {
+        entity.setInstitutionID(id);
+        return repository.save(entity);
     }
 
-    public boolean deleteInstitution(UUID id) {
-        return institutionsRepository.delete(id);
+    public List<InstitutionSummaryDTO> getSummaryAll() {
+        return repository.findSummaryData();
     }
 }
-

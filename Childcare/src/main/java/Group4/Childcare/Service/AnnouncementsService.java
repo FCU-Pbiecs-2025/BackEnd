@@ -1,34 +1,37 @@
 package Group4.Childcare.Service;
 
 import Group4.Childcare.Model.Announcements;
+import Group4.Childcare.DTO.AnnouncementSummaryDTO;
 import Group4.Childcare.Repository.AnnouncementsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class AnnouncementsService {
     @Autowired
-    private AnnouncementsRepository announcementsRepository;
+    private AnnouncementsRepository repository;
 
-    public List<Announcements> getAllAnnouncements() {
-        return announcementsRepository.findAll();
+    public Announcements create(Announcements entity) {
+        return repository.save(entity);
     }
 
-    public Announcements getAnnouncementById(UUID id) {
-        return announcementsRepository.findById(id);
+    public Optional<Announcements> getById(UUID id) {
+        return repository.findById(id);
     }
 
-    public Announcements createAnnouncement(Announcements announcement) {
-        return announcementsRepository.save(announcement);
+    public List<Announcements> getAll() {
+        return repository.findAll();
     }
 
-    public Announcements updateAnnouncement(Announcements announcement) {
-        return announcementsRepository.update(announcement);
+    public Announcements update(UUID id, Announcements entity) {
+        entity.setAnnouncementID(id);
+        return repository.save(entity);
     }
 
-    public boolean deleteAnnouncement(UUID id) {
-        return announcementsRepository.delete(id);
+    public List<AnnouncementSummaryDTO> getSummaryAll() {
+        return repository.findSummaryData();
     }
 }

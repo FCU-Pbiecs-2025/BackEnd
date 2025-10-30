@@ -14,13 +14,13 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ParentInfo {
     @Id
-    @Column(name = "ParentId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID parentId;
+    @Column(name = "ParentID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID parentID;
 
-    @Column(name = "NationalId", length = 20)
-    private String nationalId;
+    @Column(name = "NationalID", length = 20)
+    private String nationalID;
 
-    @Column(name = "Name", length = 10)
+    @Column(name = "Name", length = 50)
     private String name;
 
     @Column(name = "Gender")
@@ -47,19 +47,12 @@ public class ParentInfo {
     @Column(name = "BirthDate")
     private LocalDate birthDate;
 
-    @Column(name = "AttachmentPath", columnDefinition = "NVARCHAR(MAX)")
-    private String attachmentPath;
-
     @Column(name = "IsSuspended")
     private Boolean isSuspended;
-
-    @Column(name = "SuspendStart")
-    private LocalDate suspendStart;
 
     @Column(name = "SuspendEnd")
     private LocalDate suspendEnd;
 
-    @Column(name = "FamilyInfoId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID familyInfoId;
+    @Column(name = "FamilyInfoID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID familyInfoID;
 }
-

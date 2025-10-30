@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -15,17 +16,17 @@ import java.util.UUID;
 public class Applications {
 
     @Id
-    @Column(name = "ApplicationId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID applicationId;
+    @Column(name = "ApplicationID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID applicationID;
 
     @Column(name = "ApplicationDate")
     private LocalDate applicationDate;
 
-    @Column(name = "InstitutionId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID institutionId;
+    @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID institutionID;
 
-    @Column(name = "UserId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID userId;
+    @Column(name = "UserID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID userID;
 
     @Column(name = "IdentityType")
     private Byte identityType;
@@ -33,15 +34,12 @@ public class Applications {
     @Column(name = "AttachmentPath", columnDefinition = "NVARCHAR(MAX)")
     private String attachmentPath;
 
-    @Column(name = "ReviewStatus", length = 50)
-    private String reviewStatus;
-
     @Column(name = "ReviewUser", length = 50)
     private String reviewUser;
 
-    @Column(name = "CurrentOrder")
-    private Integer currentOrder;
+    @Column(name = "Reason", columnDefinition = "NVARCHAR(MAX)")
+    private String reason;
 
-    @Column(name = "Withdrawal", columnDefinition = "NVARCHAR(50)")
-    private String withdrawal;
+    @OneToMany(mappedBy = "applications")
+    private List<ApplicationParticipants> applicationParticipants;
 }

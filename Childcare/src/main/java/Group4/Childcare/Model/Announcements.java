@@ -16,8 +16,8 @@ import java.util.UUID;
 public class Announcements {
 
     @Id
-    @Column(name = "AnnouncementId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID announcementId;
+    @Column(name = "AnnouncementID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID announcementID;
 
     @Column(name = "Title", length = 100)
     private String title;
@@ -28,10 +28,10 @@ public class Announcements {
     @Column(name = "Type")
     private Byte type;
 
-    @Column(name = "StartDate")
+    @Column(name = "StartDate", columnDefinition = "DATE")
     private LocalDate startDate;
 
-    @Column(name = "EndDate")
+    @Column(name = "EndDate", columnDefinition = "DATE")
     private LocalDate endDate;
 
     @Column(name = "Status")

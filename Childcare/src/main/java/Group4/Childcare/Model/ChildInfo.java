@@ -15,11 +15,11 @@ import java.util.UUID;
 public class ChildInfo {
 
     @Id
-    @Column(name = "ChildId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID childId;
+    @Column(name = "ChildID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID childID;
 
-    @Column(name = "NationalId", length = 10)
-    private String nationalId;
+    @Column(name = "NationalID", length = 10)
+    private String nationalID;
 
     @Column(name = "Name", length = 10)
     private String name;
@@ -30,6 +30,9 @@ public class ChildInfo {
     @Column(name = "BirthDate")
     private LocalDate birthDate;
 
-    @Column(name = "FamilyInfoId", columnDefinition = "UNIQUEIDENTIFIER")
-    private UUID familyInfoId;
+    @Column(name = "FamilyInfoID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID familyInfoID;
+
+    @Column(name = "HouseholdAddress", length = 200)
+    private String householdAddress;
 }
