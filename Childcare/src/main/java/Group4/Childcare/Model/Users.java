@@ -42,6 +42,7 @@ public class Users {
     @Column(name = "MailingAddress", length = 200)
     private String mailingAddress;
 
+
     @Column(name = "Email", length = 100)
     private String email;
 
@@ -54,6 +55,5 @@ public class Users {
     @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID institutionID;
 
-    @Column(name = "HouseholdAddress", length = 200)
-    private String householdAddress;
+
 }

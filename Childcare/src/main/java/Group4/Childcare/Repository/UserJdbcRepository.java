@@ -49,7 +49,6 @@ public class UserJdbcRepository {
                 user.setInstitutionID(UUID.fromString(rs.getString("InstitutionID")));
             }
 
-            user.setHouseholdAddress(rs.getString("HouseholdAddress"));
 
             return user;
         }
@@ -69,8 +68,8 @@ public class UserJdbcRepository {
     private Users insert(Users user) {
         String sql = "INSERT INTO " + TABLE_NAME +
                     " (UserID, Account, Password, AccountStatus, PermissionType, Name, Gender, " +
-                    "PhoneNumber, MailingAddress, Email, BirthDate, FamilyInfoID, InstitutionID, HouseholdAddress) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "PhoneNumber, MailingAddress, Email, BirthDate, FamilyInfoID, InstitutionID) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
             user.getUserID().toString(),
@@ -85,8 +84,7 @@ public class UserJdbcRepository {
             user.getEmail(),
             user.getBirthDate(),
             user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null,
-            user.getInstitutionID() != null ? user.getInstitutionID().toString() : null,
-            user.getHouseholdAddress()
+            user.getInstitutionID() != null ? user.getInstitutionID().toString() : null
         );
 
         return user;
@@ -97,7 +95,7 @@ public class UserJdbcRepository {
         String sql = "UPDATE " + TABLE_NAME +
                     " SET Account = ?, Password = ?, AccountStatus = ?, PermissionType = ?, Name = ?, " +
                     "Gender = ?, PhoneNumber = ?, MailingAddress = ?, Email = ?, BirthDate = ?, " +
-                    "FamilyInfoID = ?, InstitutionID = ?, HouseholdAddress = ? WHERE UserID = ?";
+                    "FamilyInfoID = ?, InstitutionID = ? WHERE UserID = ?";
 
         jdbcTemplate.update(sql,
             user.getAccount(),
@@ -112,7 +110,6 @@ public class UserJdbcRepository {
             user.getBirthDate(),
             user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null,
             user.getInstitutionID() != null ? user.getInstitutionID().toString() : null,
-            user.getHouseholdAddress(),
             user.getUserID().toString()
         );
 

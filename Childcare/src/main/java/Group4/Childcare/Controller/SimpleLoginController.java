@@ -10,14 +10,14 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/simple")
+@RequestMapping("/Login")
 @CrossOrigin
 public class SimpleLoginController {
 
     @Autowired
     private UserRepository userRepository;
 
-    @PostMapping("/login")
+    @PostMapping("/Verify")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginRequest) {
         Map<String, Object> result = new HashMap<>();
 

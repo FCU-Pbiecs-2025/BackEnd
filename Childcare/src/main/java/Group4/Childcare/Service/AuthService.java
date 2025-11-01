@@ -79,7 +79,7 @@ public class AuthService {
             user.setName(name);
             user.setGender("男".equals(gender) || "male".equalsIgnoreCase(gender)); // 假設男性為true，女性為false
             user.setPhoneNumber(phone);
-            user.setHouseholdAddress(address);
+            user.setMailingAddress(address);
             user.setEmail(email);
 
             // 處理生日格式 (假設前端傳來的是 YYYY-MM-DD 格式)
