@@ -2,6 +2,7 @@ package Group4.Childcare.Controller;
 
 import Group4.Childcare.Model.Classes;
 import Group4.Childcare.Service.ClassesService;
+import Group4.Childcare.DTO.ClassSummaryDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +44,15 @@ public class ClassesController {
     @GetMapping
     public List<Classes> getAll() {
         return service.getAll();
+    }
+
+    /**
+     * 取得所有班級與其機構名稱
+     * @return List<ClassSummaryDTO>
+     */
+    @GetMapping("/with-institution")
+    public List<ClassSummaryDTO> getAllWithInstitutionName() {
+        return service.getAllWithInstitutionName();
     }
 
     /**

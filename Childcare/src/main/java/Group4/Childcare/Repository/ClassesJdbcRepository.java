@@ -1,6 +1,7 @@
 package Group4.Childcare.Repository;
 
 import Group4.Childcare.Model.Classes;
+import Group4.Childcare.DTO.ClassSummaryDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -38,6 +39,35 @@ public class ClassesJdbcRepository {
             }
 
             return classes;
+        }
+    };
+
+    // RowMapper for ClassSummaryDTO (includes institution name via LEFT JOIN)
+    private static final RowMapper<ClassSummaryDTO> CLASS_SUMMARY_ROW_MAPPER = new RowMapper<ClassSummaryDTO>() {
+        @Override
+        public ClassSummaryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ClassSummaryDTO dto = new ClassSummaryDTO();
+            String classIdStr = rs.getString("ClassID");
+            if (classIdStr != null) {
+                dto.setClassID(UUID.fromString(classIdStr));
+            }
+            dto.setClassName(rs.getString("ClassName"));
+
+            // Capacity may be nullable in DB; use getObject to check
+            Object capObj = rs.getObject("Capacity");
+            if (capObj != null) {
+                dto.setCapacity(rs.getInt("Capacity"));
+            } else {
+                dto.setCapacity(null);
+            }
+
+            dto.setMinAgeDescription(rs.getString("MinAgeDescription"));
+            dto.setMaxAgeDescription(rs.getString("MaxAgeDescription"));
+
+            // InstitutionName comes from the joined institutions table; may be null
+            dto.setInstitutionName(rs.getString("InstitutionName"));
+
+            return dto;
         }
     };
 
@@ -112,6 +142,13 @@ public class ClassesJdbcRepository {
     public List<Classes> findAll() {
         String sql = "SELECT * FROM " + TABLE_NAME;
         return jdbcTemplate.query(sql, CLASSES_ROW_MAPPER);
+    }
+
+    // Find all with institution name using LEFT JOIN
+    public List<ClassSummaryDTO> findAllWithInstitutionName() {
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName " +
+                     "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID";
+        return jdbcTemplate.query(sql, CLASS_SUMMARY_ROW_MAPPER);
     }
 
     // Delete by ID

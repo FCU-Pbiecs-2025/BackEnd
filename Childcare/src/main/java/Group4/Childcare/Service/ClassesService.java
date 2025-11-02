@@ -3,6 +3,7 @@ package Group4.Childcare.Service;
 import Group4.Childcare.Model.Classes;
 import Group4.Childcare.Repository.ClassesJdbcRepository;
 import Group4.Childcare.Repository.ClassesRepository;
+import Group4.Childcare.DTO.ClassSummaryDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -41,6 +42,14 @@ public class ClassesService {
      */
     public List<Classes> getAll() {
         return repository.findAll();
+    }
+
+    /**
+     * 取得所有班級與其機構名稱（使用 JDBC LEFT JOIN）
+     * @return List<ClassSummaryDTO>
+     */
+    public List<ClassSummaryDTO> getAllWithInstitutionName() {
+        return jdbcRepository.findAllWithInstitutionName();
     }
 
     /**
