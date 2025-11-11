@@ -64,11 +64,66 @@ public class ClassesService {
     }
 
     /**
+     * 刪除班級資料
+     * @param id 班級ID
+     */
+    public void delete(UUID id) {
+        repository.deleteById(id);
+    }
+
+    /**
      * 依機構ID查詢班級資料
      * @param institutionId 機構ID
      * @return 查詢結果 List<Classes>
      */
     public List<Classes> getByInstitutionId(UUID institutionId) {
         return jdbcRepository.findByInstitutionId(institutionId);
+    }
+
+    // 使用JDBC的offset分頁方法 - 一次取10筆
+    public List<Classes> getClassesWithOffsetJdbc(int offset) {
+        return jdbcRepository.findWithOffset(offset, 10);
+    }
+
+    // 取得總筆數用於分頁計算
+    public long getTotalCount() {
+        return jdbcRepository.countTotal();
+    }
+
+    /**
+     * 依機構名稱模糊搜尋，返回機構及其班級資料
+     * @param institutionName 機構名稱關鍵字
+     * @return 處理後的機構與班級資料列表
+     */
+    public List<java.util.Map<String, Object>> searchInstitutionsWithClassesByName(String institutionName) {
+        List<java.util.Map<String, Object>> rawResults = jdbcRepository.findInstitutionsWithClassesByName(institutionName);
+
+        // 將相同機構的班級資料合併
+        java.util.Map<String, java.util.Map<String, Object>> institutionMap = new java.util.LinkedHashMap<>();
+
+        for (java.util.Map<String, Object> row : rawResults) {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> institution = (java.util.Map<String, Object>) row.get("institution");
+            String institutionId = (String) institution.get("institutionID");
+
+            if (!institutionMap.containsKey(institutionId)) {
+                java.util.Map<String, Object> institutionWithClasses = new java.util.HashMap<>();
+                institutionWithClasses.put("institution", institution);
+                institutionWithClasses.put("classes", new java.util.ArrayList<java.util.Map<String, Object>>());
+                institutionMap.put(institutionId, institutionWithClasses);
+            }
+
+            // 如果有班級資料，加入班級列表
+            if (row.get("class") != null) {
+                @SuppressWarnings("unchecked")
+                java.util.List<java.util.Map<String, Object>> classes =
+                    (java.util.List<java.util.Map<String, Object>>) institutionMap.get(institutionId).get("classes");
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> classData = (java.util.Map<String, Object>) row.get("class");
+                classes.add(classData);
+            }
+        }
+
+        return new java.util.ArrayList<>(institutionMap.values());
     }
 }

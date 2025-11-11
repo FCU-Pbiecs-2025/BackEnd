@@ -2,22 +2,23 @@ package Group4.Childcare.Controller;
 
 import Group4.Childcare.Model.Announcements;
 import Group4.Childcare.DTO.AnnouncementSummaryDTO;
+import Group4.Childcare.Model.Users;
 import Group4.Childcare.Service.AnnouncementsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/announcements")
 public class AnnouncementsController {
-    private static final Logger logger = LoggerFactory.getLogger(AnnouncementsController.class);
     private final AnnouncementsService service;
+
 
     @Autowired
     public AnnouncementsController(AnnouncementsService service) {
@@ -26,6 +27,7 @@ public class AnnouncementsController {
 
     @PostMapping
     public ResponseEntity<Announcements> create(@RequestBody Announcements entity) {
+
         return ResponseEntity.ok(service.create(entity));
     }
 
@@ -38,12 +40,23 @@ public class AnnouncementsController {
     @GetMapping
     public ResponseEntity<List<Announcements>> getAll() {
         List<Announcements> announcements = service.getAll();
-        logger.info("=== getAll() Debug ===");
-        for (Announcements ann : announcements) {
-            logger.info("Announcement ID: {}, Title: {}, StartDate: {}",
-                ann.getAnnouncementID(), ann.getTitle(), ann.getStartDate());
-        }
         return ResponseEntity.ok(announcements);
+    }
+
+    @GetMapping("/offset")
+    public ResponseEntity<Map<String, Object>> getAnnouncementsByOffsetJdbc(@RequestParam(defaultValue = "0") int offset) {
+        List<Announcements> announcements = service.getAnnouncementsWithOffsetJdbc(offset);
+        long totalCount = service.getTotalCount();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", announcements);
+        response.put("offset", offset);
+        response.put("size", 8);
+        response.put("totalElements", totalCount);
+        response.put("totalPages", (int) Math.ceil((double) totalCount / 8));
+        response.put("hasNext", offset + 8 < totalCount);
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")

@@ -169,4 +169,17 @@ public class AnnouncementsJdbcRepository {
         String sql = "SELECT AnnouncementID, Title, Content, StartDate FROM " + TABLE_NAME;
         return jdbcTemplate.query(sql, SUMMARY_ROW_MAPPER);
     }
+
+    // Custom method: Find with offset pagination (for SQL Server, use string concatenation for offset/limit)
+    public List<Announcements> findWithOffset(int offset, int limit) {
+        String sql = "SELECT * FROM " + TABLE_NAME + " ORDER BY CreatedTime DESC OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY";
+        return jdbcTemplate.query(sql, ANNOUNCEMENTS_ROW_MAPPER);
+    }
+
+    // Custom method: Find total count for pagination
+    public long countTotal() {
+        String sql = "SELECT COUNT(*) FROM " + TABLE_NAME;
+        Long count = jdbcTemplate.queryForObject(sql, Long.class);
+        return count != null ? count : 0;
+    }
 }
