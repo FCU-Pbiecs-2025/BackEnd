@@ -6,6 +6,7 @@ import Group4.Childcare.DTO.ClassSummaryDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,17 +50,19 @@ public class ClassesController {
     }
 
     @GetMapping("/offset")
-    public ResponseEntity<Map<String, Object>> getClassesByOffsetJdbc(@RequestParam(defaultValue = "0") int offset) {
-        List<Classes> classes = service.getClassesWithOffsetJdbc(offset);
+    public ResponseEntity<Map<String, Object>> getClassesByOffsetJdbc(
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int size) {
+        List<ClassSummaryDTO> classes = service.getClassesWithOffsetAndInstitutionNameJdbc(offset, size);
         long totalCount = service.getTotalCount();
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", classes);
         response.put("offset", offset);
-        response.put("size", 10);
+        response.put("size", size);
         response.put("totalElements", totalCount);
-        response.put("totalPages", (int) Math.ceil((double) totalCount / 10));
-        response.put("hasNext", offset + 10 < totalCount);
+        response.put("totalPages", (int) Math.ceil((double) totalCount / size));
+        response.put("hasNext", offset + size < totalCount);
 
         return ResponseEntity.ok(response);
     }
@@ -81,7 +84,25 @@ public class ClassesController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<Classes> update(@PathVariable UUID id, @RequestBody Classes entity) {
-        return ResponseEntity.ok(service.update(id, entity));
+        try {
+            System.out.println("Updating class with ID: " + id);
+            System.out.println("Received entity: " + entity);
+
+            // 確保 ID 一致
+            entity.setClassID(id);
+            Classes updatedClass = service.update(id, entity);
+            return ResponseEntity.ok(updatedClass);
+        } catch (RuntimeException e) {
+            // 業務邏輯錯誤（如記錄不存在）
+            System.err.println("Business logic error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            // 其他系統錯誤
+            System.err.println("System error during update: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -107,18 +128,43 @@ public class ClassesController {
     }
 
     /**
-     * 依機構名稱模糊搜尋，返回機構及其班級資料
+     * 依機構名稱模糊搜尋，返回班級資料（跟 offset 端點相同格式）
      * @param institutionName 機構名稱關鍵字
-     * @return 查詢結果 ResponseEntity<List<Map<String, Object>>>
+     * @param offset 分頁偏移量
+     * @return 查詢結果 ResponseEntity<Map<String, Object>>
      */
     @GetMapping("/search/institution")
-    public ResponseEntity<List<Map<String, Object>>> searchByInstitutionName(
-            @RequestParam("name") String institutionName) {
+    public ResponseEntity<Map<String, Object>> searchByInstitutionName(
+            @RequestParam("name") String institutionName,
+            @RequestParam(defaultValue = "0") int offset) {
         if (institutionName == null || institutionName.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 
-        List<Map<String, Object>> results = service.searchInstitutionsWithClassesByName(institutionName.trim());
-        return ResponseEntity.ok(results);
+        List<ClassSummaryDTO> allClasses = service.searchClassesByInstitutionName(institutionName.trim());
+
+        // 手動分頁處理
+        int size = 10;
+        int totalElements = allClasses.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        // 取得當前頁面的資料
+        List<ClassSummaryDTO> pagedClasses;
+        if (offset >= totalElements) {
+            pagedClasses = new ArrayList<>();
+        } else {
+            int endIndex = Math.min(offset + size, totalElements);
+            pagedClasses = allClasses.subList(offset, endIndex);
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", pagedClasses);
+        response.put("offset", offset);
+        response.put("size", size);
+        response.put("totalElements", totalElements);
+        response.put("totalPages", totalPages);
+        response.put("hasNext", offset + size < totalElements);
+
+        return ResponseEntity.ok(response);
     }
 }

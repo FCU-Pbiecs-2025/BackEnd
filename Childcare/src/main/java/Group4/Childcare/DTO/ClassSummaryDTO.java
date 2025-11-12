@@ -15,5 +15,6 @@ public class ClassSummaryDTO {
     private String minAgeDescription;
     private String maxAgeDescription;
     private String institutionName;
+    private UUID institutionID;
 }
 

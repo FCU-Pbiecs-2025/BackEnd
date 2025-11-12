@@ -28,8 +28,8 @@ public class ClassesJdbcRepository {
             Classes classes = new Classes();
             classes.setClassID(UUID.fromString(rs.getString("ClassID")));
             classes.setClassName(rs.getString("ClassName"));
-            classes.setCapacity(rs.getByte("Capacity"));
-            classes.setCurrentStudents(rs.getByte("CurrentStudents"));
+            classes.setCapacity((Integer) rs.getObject("Capacity"));
+            classes.setCurrentStudents((Integer) rs.getObject("CurrentStudents"));
             classes.setMinAgeDescription(rs.getString("MinAgeDescription"));
             classes.setMaxAgeDescription(rs.getString("MaxAgeDescription"));
             classes.setAdditionalInfo(rs.getString("AdditionalInfo"));
@@ -66,6 +66,12 @@ public class ClassesJdbcRepository {
 
             // InstitutionName comes from the joined institutions table; may be null
             dto.setInstitutionName(rs.getString("InstitutionName"));
+
+            // InstitutionID from the joined institutions table; may be null
+            String institutionIdStr = rs.getString("InstitutionID");
+            if (institutionIdStr != null) {
+                dto.setInstitutionID(UUID.fromString(institutionIdStr));
+            }
 
             return dto;
         }
@@ -146,7 +152,7 @@ public class ClassesJdbcRepository {
 
     // Find all with institution name using LEFT JOIN
     public List<ClassSummaryDTO> findAllWithInstitutionName() {
-        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName " +
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
                      "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID";
         return jdbcTemplate.query(sql, CLASS_SUMMARY_ROW_MAPPER);
     }
@@ -185,6 +191,14 @@ public class ClassesJdbcRepository {
     // 取得總筆數用於分頁計算
     public long countTotal() {
         return count();
+    }
+
+    // 使用offset分頁查詢，包含機構名稱 - 一次取指定筆數
+    public List<ClassSummaryDTO> findWithOffsetAndInstitutionName(int offset, int limit) {
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
+                     "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID " +
+                     "ORDER BY c.ClassID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        return jdbcTemplate.query(sql, CLASS_SUMMARY_ROW_MAPPER, offset, limit);
     }
 
     /**
@@ -246,5 +260,18 @@ public class ClassesJdbcRepository {
 
             return result;
         }, "%" + institutionName + "%");
+    }
+
+    /**
+     * 依機構名稱模糊搜尋班級，回傳 ClassSummaryDTO 列表
+     * @param institutionName 機構名稱關鍵字
+     * @return List<ClassSummaryDTO>
+     */
+    public List<ClassSummaryDTO> findClassesByInstitutionName(String institutionName) {
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
+                     "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID " +
+                     "WHERE i.InstitutionName LIKE ? " +
+                     "ORDER BY i.InstitutionName, c.ClassName";
+        return jdbcTemplate.query(sql, CLASS_SUMMARY_ROW_MAPPER, "%" + institutionName + "%");
     }
 }

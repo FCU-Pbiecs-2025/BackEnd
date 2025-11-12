@@ -59,6 +59,11 @@ public class ClassesService {
      * @return 更新後的 Classes
      */
     public Classes update(UUID id, Classes entity) {
+        // 檢查記錄是否存在
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("班級記錄不存在，ID: " + id);
+        }
+
         entity.setClassID(id);
         return repository.save(entity);
     }
@@ -83,6 +88,11 @@ public class ClassesService {
     // 使用JDBC的offset分頁方法 - 一次取10筆
     public List<Classes> getClassesWithOffsetJdbc(int offset) {
         return jdbcRepository.findWithOffset(offset, 10);
+    }
+
+    // 使用JDBC的offset分頁方法，包含機構名稱 - 可指定每頁筆數
+    public List<ClassSummaryDTO> getClassesWithOffsetAndInstitutionNameJdbc(int offset, int size) {
+        return jdbcRepository.findWithOffsetAndInstitutionName(offset, size);
     }
 
     // 取得總筆數用於分頁計算
@@ -125,5 +135,14 @@ public class ClassesService {
         }
 
         return new java.util.ArrayList<>(institutionMap.values());
+    }
+
+    /**
+     * 依機構名稱模糊搜尋班級，回傳 ClassSummaryDTO 列表
+     * @param institutionName 機構名稱關鍵字
+     * @return ClassSummaryDTO 列表
+     */
+    public List<ClassSummaryDTO> searchClassesByInstitutionName(String institutionName) {
+        return jdbcRepository.findClassesByInstitutionName(institutionName);
     }
 }

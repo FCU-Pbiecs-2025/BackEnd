@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.*;
 import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "classes")
@@ -15,16 +17,18 @@ public class Classes {
 
     @Id
     @Column(name = "ClassID", columnDefinition = "UNIQUEIDENTIFIER")
+    @JsonProperty("classID")
+    @JsonAlias({"classId"})
     private UUID classID;
 
     @Column(name = "ClassName", length = 50)
     private String className;
 
     @Column(name = "Capacity")
-    private Byte capacity;
+    private Integer capacity;
 
     @Column(name = "CurrentStudents")
-    private Byte currentStudents;
+    private Integer currentStudents;
 
     @Column(name = "MinAgeDescription", length = 50)
     private String minAgeDescription;
@@ -36,5 +40,7 @@ public class Classes {
     private String additionalInfo;
 
     @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
+    @JsonProperty("institutionID")
+    @JsonAlias({"institutionId"})
     private UUID institutionID;
 }

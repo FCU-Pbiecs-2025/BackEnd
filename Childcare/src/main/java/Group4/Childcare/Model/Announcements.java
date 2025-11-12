@@ -8,6 +8,9 @@ import java.time.LocalDate;//因為有LocalDate型態所以要import
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 公告實體類別
+ */
 @Entity
 @Table(name = "announcements")
 @Data
@@ -46,9 +49,15 @@ public class Announcements {
     @Column(name = "UpdatedUser", length = 50)
     private String updatedUser;
 
+    /**
+     * 最後更新時間
+     */
     @Column(name = "UpdatedTime")
     private LocalDateTime updatedTime;
 
+    /**
+     * 附件檔案路徑
+     */
     @Column(name = "AttachmentPath", columnDefinition = "NVARCHAR(MAX)")
     private String attachmentPath;
 }
