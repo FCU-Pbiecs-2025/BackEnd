@@ -24,8 +24,8 @@ public class Banners {
     @Column(name = "EndTime")
     private LocalDateTime endTime;
 
-    @Column(name = "ImageUrl", length = 500)
-    private String imageUrl;
+    @Column(name = "ImageName", length = 500)
+    private String imageName;
 
     @Column(name = "LinkUrl", length = 500)
     private String linkUrl;
