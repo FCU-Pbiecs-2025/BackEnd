@@ -12,12 +12,16 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.sql.Date;
 
 @Repository
 public class UserJdbcRepository {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private FamilyInfoJdbcRepository familyInfoJdbcRepository;
 
     private static final String TABLE_NAME = "users";
 
@@ -49,16 +53,19 @@ public class UserJdbcRepository {
                 user.setInstitutionID(UUID.fromString(rs.getString("InstitutionID")));
             }
 
+            // Map NationalID if present
+            String nationalId = rs.getString("NationalID");
+            user.setNationalID(nationalId);
 
             return user;
         }
     };
 
-    // RowMapper for UserSummaryDTO
-    private static final RowMapper<UserSummaryDTO> USER_SUMMARY_ROW_MAPPER = new RowMapper<UserSummaryDTO>() {
+    // RowMapper for UserSummaryDTO (use fully-qualified to avoid ambiguity)
+    private static final RowMapper<Group4.Childcare.DTO.UserSummaryDTO> USER_SUMMARY_ROW_MAPPER = new RowMapper<Group4.Childcare.DTO.UserSummaryDTO>() {
         @Override
-        public UserSummaryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            UserSummaryDTO user = new UserSummaryDTO();
+        public Group4.Childcare.DTO.UserSummaryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            Group4.Childcare.DTO.UserSummaryDTO user = new Group4.Childcare.DTO.UserSummaryDTO();
             user.setUserID(UUID.fromString(rs.getString("UserID")));
             user.setAccount(rs.getString("Account"));
             user.setPermissionType(rs.getByte("PermissionType"));
@@ -72,6 +79,13 @@ public class UserJdbcRepository {
 
     // Save method
     public Users save(Users user) {
+        // If user has no FamilyInfoID, create a new FamilyInfo row and set it
+        if (user.getFamilyInfoID() == null) {
+            Group4.Childcare.Model.FamilyInfo newFamily = new Group4.Childcare.Model.FamilyInfo();
+            Group4.Childcare.Model.FamilyInfo saved = familyInfoJdbcRepository.save(newFamily);
+            user.setFamilyInfoID(saved.getFamilyInfoID());
+        }
+
         if (user.getUserID() == null) {
             user.setUserID(UUID.randomUUID());
             return insert(user);
@@ -81,11 +95,11 @@ public class UserJdbcRepository {
     }
 
     // Insert method
-    private Users insert(Users user) {
+    private Users  insert(Users user) {
         String sql = "INSERT INTO " + TABLE_NAME +
                     " (UserID, Account, Password, AccountStatus, PermissionType, Name, Gender, " +
-                    "PhoneNumber, MailingAddress, Email, BirthDate, FamilyInfoID, InstitutionID) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "PhoneNumber, MailingAddress, Email, BirthDate, FamilyInfoID, InstitutionID, NationalID) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
             user.getUserID().toString(),
@@ -98,9 +112,10 @@ public class UserJdbcRepository {
             user.getPhoneNumber(),
             user.getMailingAddress(),
             user.getEmail(),
-            user.getBirthDate(),
+            user.getBirthDate() != null ? Date.valueOf(user.getBirthDate()) : null,
             user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null,
-            user.getInstitutionID() != null ? user.getInstitutionID().toString() : null
+            user.getInstitutionID() != null ? user.getInstitutionID().toString() : null,
+            user.getNationalID()
         );
 
         return user;
@@ -111,7 +126,7 @@ public class UserJdbcRepository {
         String sql = "UPDATE " + TABLE_NAME +
                     " SET Account = ?, Password = ?, AccountStatus = ?, PermissionType = ?, Name = ?, " +
                     "Gender = ?, PhoneNumber = ?, MailingAddress = ?, Email = ?, BirthDate = ?, " +
-                    "FamilyInfoID = ?, InstitutionID = ? WHERE UserID = ?";
+                    "FamilyInfoID = ?, InstitutionID = ?, NationalID = ? WHERE UserID = ?";
 
         jdbcTemplate.update(sql,
             user.getAccount(),
@@ -123,9 +138,10 @@ public class UserJdbcRepository {
             user.getPhoneNumber(),
             user.getMailingAddress(),
             user.getEmail(),
-            user.getBirthDate(),
+            user.getBirthDate() != null ? Date.valueOf(user.getBirthDate()) : null,
             user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null,
             user.getInstitutionID() != null ? user.getInstitutionID().toString() : null,
+            user.getNationalID(),
             user.getUserID().toString()
         );
 
@@ -191,7 +207,7 @@ public class UserJdbcRepository {
     }
 
     // 使用offset分頁查詢，包含機構名稱 - 一次取指定筆數
-    public List<UserSummaryDTO> findWithOffsetAndInstitutionName(int offset, int limit) {
+    public List<Group4.Childcare.DTO.UserSummaryDTO> findWithOffsetAndInstitutionName(int offset, int limit) {
         String sql = "SELECT u.UserID, u.Account, u.PermissionType, u.AccountStatus, i.InstitutionName " +
                      "FROM " + TABLE_NAME + " u LEFT JOIN institutions i ON u.InstitutionID = i.InstitutionID " +
                      "ORDER BY u.UserID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";

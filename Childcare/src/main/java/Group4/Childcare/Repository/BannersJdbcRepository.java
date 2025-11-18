@@ -200,4 +200,11 @@ public class BannersJdbcRepository {
         String sql = "SELECT * FROM " + TABLE_NAME + " ORDER BY SortOrder OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY";
         return jdbcTemplate.query(sql, BANNERS_ROW_MAPPER);
     }
+
+    // Find active banners: Status = true, now between StartTime and EndTime
+    public List<Banners> findActiveBanners() {
+        String sql = "SELECT * FROM " + TABLE_NAME + " WHERE Status = 1 AND ? >= StartTime AND ? <= EndTime ORDER BY SortOrder";
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        return jdbcTemplate.query(sql, BANNERS_ROW_MAPPER, now, now);
+    }
 }

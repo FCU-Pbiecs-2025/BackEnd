@@ -67,11 +67,9 @@ public class BannersController {
             return ResponseEntity.badRequest().body("meta 必須包含 sortOrder, startTime, endTime, status 欄位且不可為 null");
         }
         String originalFilename = file.getOriginalFilename();
-        String original = originalFilename != null ? StringUtils.cleanPath(originalFilename) : "";
-        String ext = "";
-        int idx = original.lastIndexOf('.');
-        if (idx != -1) ext = original.substring(idx);
-        String filename = UUID.randomUUID() + ext;
+        String original = originalFilename != null ? StringUtils.cleanPath(originalFilename) : "file";
+        // 使用 UUID_原始檔名，保留前端檔名以利識別
+        String filename = UUID.randomUUID() + "_" + original;
         try {
             Path target = storageLocation.resolve(filename);
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
@@ -136,11 +134,9 @@ public class BannersController {
 
         if (file != null && !file.isEmpty()) {
             String originalFilename = file.getOriginalFilename();
-            String original2 = originalFilename != null ? StringUtils.cleanPath(originalFilename) : "";
-            String ext = "";
-            int idx = original2.lastIndexOf('.');
-            if (idx != -1) ext = original2.substring(idx);
-            String filename = UUID.randomUUID() + ext;
+            String original2 = originalFilename != null ? StringUtils.cleanPath(originalFilename) : "file";
+            // 使用 UUID_原始檔名 命名規則
+            String filename = UUID.randomUUID() + "_" + original2;
             try {
                 Path target = storageLocation.resolve(filename);
                 Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
@@ -217,12 +213,24 @@ public class BannersController {
         }
         try {
             String contentType = Files.probeContentType(filePath);
+            // 從 UUID_原始檔名 提取原始檔名顯示
+            String displayFilename = imageName;
+            int underscoreIdx = imageName.indexOf('_');
+            if (underscoreIdx > 0 && underscoreIdx < imageName.length() - 1) {
+                displayFilename = imageName.substring(underscoreIdx + 1);
+            }
             return ResponseEntity.ok()
-                .header("Content-Disposition", "inline; filename=\"" + imageName + "\"")
+                .header("Content-Disposition", "inline; filename=\"" + displayFilename + "\"")
                 .contentType(contentType != null ? org.springframework.http.MediaType.parseMediaType(contentType) : org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
                 .body(Files.readAllBytes(filePath));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to read image: " + e.getMessage());
         }
+    }
+
+    // 取得上架且未過期的 banners
+    @GetMapping("/active")
+    public List<Banners> getActiveBanners() {
+        return service.findActiveBanners();
     }
 }

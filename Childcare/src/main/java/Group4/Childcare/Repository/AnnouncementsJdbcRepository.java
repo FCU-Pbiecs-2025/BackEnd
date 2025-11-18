@@ -11,6 +11,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,7 +21,7 @@ public class AnnouncementsJdbcRepository {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private static final String TABLE_NAME = "announcements";
+    private static final String TABLE_NAME = "dbo.announcements";
 
     // RowMapper for Announcements entity
     private static final RowMapper<Announcements> ANNOUNCEMENTS_ROW_MAPPER = (rs, rowNum) -> {
@@ -51,6 +52,8 @@ public class AnnouncementsJdbcRepository {
         if (updatedTime != null) {
             announcement.setUpdatedTime(updatedTime.toLocalDateTime());
         }
+        // Attachment path (may be null)
+        announcement.setAttachmentPath(rs.getString("AttachmentPath"));
         return announcement;
     };
 
@@ -100,11 +103,33 @@ public class AnnouncementsJdbcRepository {
         return announcement;
     }
 
+    // Insert with Attachment method
+    public Announcements insertWithAttachment(Announcements announcement) {
+        String sql = "INSERT INTO " + TABLE_NAME +
+                " (AnnouncementID, Title, Content, Type, StartDate, EndDate, Status, CreatedUser, CreatedTime, UpdatedUser, UpdatedTime, AttachmentPath) " +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        jdbcTemplate.update(sql,
+            announcement.getAnnouncementID() != null ? announcement.getAnnouncementID().toString() : null,
+            announcement.getTitle(),
+            announcement.getContent(),
+            announcement.getType(),
+            announcement.getStartDate(),
+            announcement.getEndDate(),
+            announcement.getStatus(),
+            announcement.getCreatedUser(),
+            announcement.getCreatedTime(),
+            announcement.getUpdatedUser(),
+            announcement.getUpdatedTime(),
+            announcement.getAttachmentPath()
+        );
+        return announcement;
+    }
+
     // Update method
     private Announcements update(Announcements announcement) {
         String sql = "UPDATE " + TABLE_NAME +
                     " SET Title = ?, Content = ?, Type = ?, StartDate = ?, EndDate = ?, Status = ?, " +
-                    "CreatedUser = ?, CreatedTime = ?, UpdatedUser = ?, UpdatedTime = ? " +
+                    "CreatedUser = ?, CreatedTime = ?, UpdatedUser = ?, UpdatedTime = ?, AttachmentPath = ? " +
                     "WHERE AnnouncementID = ?";
         jdbcTemplate.update(sql,
             announcement.getTitle(),
@@ -117,6 +142,7 @@ public class AnnouncementsJdbcRepository {
             announcement.getCreatedTime(),
             announcement.getUpdatedUser(),
             announcement.getUpdatedTime(),
+            announcement.getAttachmentPath(),
             announcement.getAnnouncementID() != null ? announcement.getAnnouncementID().toString() : null
         );
         return announcement;
@@ -181,5 +207,19 @@ public class AnnouncementsJdbcRepository {
         String sql = "SELECT COUNT(*) FROM " + TABLE_NAME;
         Long count = jdbcTemplate.queryForObject(sql, Long.class);
         return count != null ? count : 0;
+    }
+
+    // Custom method: Find admin announcements that are still active (Type=2 and Status=1), return raw JSON data
+    public List<Map<String, Object>> findAdminActiveRaw() {
+        String sql = "SELECT * FROM " + TABLE_NAME  +
+                     " WHERE Type = 2 ";
+        return jdbcTemplate.queryForList(sql);
+    }
+
+    // Custom method: Find admin active summaries (type=2, enddate>=today, status=1)
+    public List<AnnouncementSummaryDTO> findAdminActiveSummaries() {
+        String sql = "SELECT AnnouncementID, Title, Content, StartDate FROM " + TABLE_NAME + " WHERE Status = 1 AND Type = 2 AND EndDate >= ?  order by StartDate DESC";
+        java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+        return jdbcTemplate.query(sql, SUMMARY_ROW_MAPPER, today);
     }
 }

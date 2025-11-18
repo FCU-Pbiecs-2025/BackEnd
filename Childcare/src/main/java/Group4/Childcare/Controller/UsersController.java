@@ -14,6 +14,7 @@ import java.util.HashMap;
 
 @RestController
 @RequestMapping("/users")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class UsersController {
   @Autowired
   private UsersService usersService;
@@ -72,6 +73,34 @@ public class UsersController {
   @PutMapping("/{id}")
   public ResponseEntity<Users> updateUser(@PathVariable UUID id, @RequestBody Users user) {
     return ResponseEntity.ok(usersService.updateUser(id, user));
+  }
+
+  @PostMapping("/new-member")
+  public ResponseEntity<Map<String, Object>> createOrUpdateUserJdbc(@RequestBody Users user) {
+    Map<String, Object> result = new HashMap<>();
+    try {
+      // 設定預設值
+      if (user.getAccountStatus() == null) {
+        user.setAccountStatus((byte) 1);
+      }
+      if (user.getPermissionType() == null) {
+        user.setPermissionType((byte) 3);
+      }
+      Users saved = usersService.saveUsingJdbc(user);
+      result.put("success", true);
+      result.put("code", 200);
+      result.put("message", "註冊成功");
+      result.put("user", saved);
+      return ResponseEntity.ok(result);
+    } catch (Exception e) {
+      System.err.println("Error in createOrUpdateUserJdbc: " + e.getMessage());
+      e.printStackTrace();
+      result.put("success", false);
+      result.put("code", 400);
+      result.put("error", "Failed to create user");
+      result.put("message", e.getMessage());
+      return ResponseEntity.status(400).body(result);
+    }
   }
 
 }

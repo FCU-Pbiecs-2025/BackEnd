@@ -48,4 +48,17 @@ public class AnnouncementsService {
     public long getTotalCount() {
         return jdbcRepository.countTotal();
     }
+
+    public Announcements createAnnouncementJdbc(Announcements entity) {
+        if (entity.getAnnouncementID() == null) {
+            entity.setAnnouncementID(UUID.randomUUID());
+        }
+        return jdbcRepository.insertWithAttachment(entity);
+    }
+
+    // Update using JDBC repository (will call update when AnnouncementID is present)
+    public Announcements updateWithJdbc(UUID id, Announcements entity) {
+        entity.setAnnouncementID(id);
+        return jdbcRepository.save(entity);
+    }
 }

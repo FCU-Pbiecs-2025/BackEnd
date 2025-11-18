@@ -15,4 +15,13 @@ public class FamilyInfo {
     @Id
     @Column(name = "FamilyInfoID", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID familyInfoID;
+
+    // Explicit getter for static analysis
+    public UUID getFamilyInfoID() {
+        return this.familyInfoID;
+    }
+
+    public void setFamilyInfoID(UUID id) {
+        this.familyInfoID = id;
+    }
 }

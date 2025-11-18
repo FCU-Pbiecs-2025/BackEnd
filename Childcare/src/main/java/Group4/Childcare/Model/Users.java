@@ -55,5 +55,17 @@ public class Users {
     @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID institutionID;
 
+    @Column(name = "NationalID", length = 20)
+    private String nationalID;
+
+    // Explicit getters/setters for static analysis and JSON mapping
+    public String getNationalID() {
+        return this.nationalID;
+    }
+
+    public void setNationalID(String nationalID) {
+        this.nationalID = nationalID;
+    }
+
 
 }

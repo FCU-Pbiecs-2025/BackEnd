@@ -45,4 +45,9 @@ public class BannersService {
     public void delete(Integer id) {
         repository.deleteById(id);
     }
+
+    // 取得上架且未過期的 banners
+    public List<Banners> findActiveBanners() {
+        return repository.findActiveBanners();
+    }
 }

@@ -76,4 +76,19 @@ public class UsersService {
       return 0;
     }
   }
+
+  /**
+   * 使用 UserJdbcRepository 的 save 方法（支援 insert 或 update）
+   * @param user Users 實體
+   * @return 儲存後的 Users
+   */
+  public Users saveUsingJdbc(Users user) {
+    try {
+      return jdbcRepository.save(user);
+    } catch (Exception e) {
+      System.err.println("Error in saveUsingJdbc: " + e.getMessage());
+      e.printStackTrace();
+      throw new RuntimeException("Failed to save user via JDBC", e);
+    }
+  }
 }
