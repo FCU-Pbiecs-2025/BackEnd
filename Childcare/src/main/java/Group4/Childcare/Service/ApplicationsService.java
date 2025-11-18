@@ -3,6 +3,7 @@ package Group4.Childcare.Service;
 import Group4.Childcare.Model.Applications;
 import Group4.Childcare.DTO.ApplicationSummaryDTO;
 import Group4.Childcare.Repository.ApplicationsRepository;
+import Group4.Childcare.Repository.ApplicationsJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -13,6 +14,7 @@ import Group4.Childcare.DTO.ApplicationParticipantDTO;
 import Group4.Childcare.Model.ApplicationParticipants;
 import Group4.Childcare.Repository.ApplicationParticipantsRepository;
 import java.time.LocalDate;
+import Group4.Childcare.DTO.ApplicationSummaryWithDetailsDTO;
 
 @Service
 public class ApplicationsService {
@@ -20,6 +22,8 @@ public class ApplicationsService {
     private ApplicationsRepository applicationsRepository;
     @Autowired
     private ApplicationParticipantsRepository applicationParticipantsRepository;
+    @Autowired
+    private ApplicationsJdbcRepository applicationsJdbcRepository;
 
     public Applications create(Applications entity) {
         return applicationsRepository.save(entity);
@@ -40,6 +44,11 @@ public class ApplicationsService {
 
     public List<ApplicationSummaryDTO> getSummaryByUserID(UUID userID) {
         return applicationsRepository.findSummaryByUserID(userID);
+    }
+
+    // New: expose JDBC offset query
+    public List<ApplicationSummaryWithDetailsDTO> getSummariesWithOffset(int offset, int limit) {
+        return applicationsJdbcRepository.findSummariesWithOffset(offset, limit);
     }
 
     public void apply(ApplicationApplyDTO dto) {
@@ -73,10 +82,27 @@ public class ApplicationsService {
                 entity.setSuspendEnd(p.suspendEnd != null && !p.suspendEnd.isEmpty() ? LocalDate.parse(p.suspendEnd) : null);
                 entity.setCurrentOrder(p.currentOrder);
                 entity.setStatus(p.status);
-                entity.setReason(p.reason);
                 entity.setClassID(p.classID != null && !p.classID.isEmpty() ? UUID.fromString(p.classID) : null);
                 applicationParticipantsRepository.save(entity);
             }
         }
     }
+
+    // New method to get total applications count
+    public long getTotalApplicationsCount() {
+        return applicationsRepository.count();
+    }
+
+    // New method to map an Applications entity to ApplicationSummaryWithDetailsDTO
+    public Optional<ApplicationSummaryWithDetailsDTO> getApplicationSummaryWithDetailsById(UUID id) {
+        return applicationsJdbcRepository.findApplicationSummaryWithDetailsById(id);
+
+    }
+
+    // New method to search applications with optional parameters
+    public List<ApplicationSummaryWithDetailsDTO> searchApplications(String institutionID, String institutionName, String applicationID) {
+        return applicationsJdbcRepository.searchApplications(institutionID, institutionName, applicationID);
+    }
+
+
 }

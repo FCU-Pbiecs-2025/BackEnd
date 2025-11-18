@@ -37,8 +37,6 @@ public class Applications {
     @Column(name = "ReviewUser", length = 50)
     private String reviewUser;
 
-    @Column(name = "Reason", columnDefinition = "NVARCHAR(MAX)")
-    private String reason;
 
     @OneToMany(mappedBy = "applications")
     private List<ApplicationParticipants> applicationParticipants;

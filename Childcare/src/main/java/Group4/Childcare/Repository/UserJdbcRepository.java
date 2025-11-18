@@ -1,6 +1,7 @@
 package Group4.Childcare.Repository;
 
 import Group4.Childcare.Model.Users;
+import Group4.Childcare.DTO.UserSummaryDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -8,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +50,22 @@ public class UserJdbcRepository {
             }
 
 
+            return user;
+        }
+    };
+
+    // RowMapper for UserSummaryDTO
+    private static final RowMapper<UserSummaryDTO> USER_SUMMARY_ROW_MAPPER = new RowMapper<UserSummaryDTO>() {
+        @Override
+        public UserSummaryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            UserSummaryDTO user = new UserSummaryDTO();
+            user.setUserID(UUID.fromString(rs.getString("UserID")));
+            user.setAccount(rs.getString("Account"));
+            user.setPermissionType(rs.getByte("PermissionType"));
+            user.setAccountStatus(rs.getByte("AccountStatus"));
+            // 處理可能為 null 的 InstitutionName
+            String institutionName = rs.getString("InstitutionName");
+            user.setInstitutionName(institutionName);
             return user;
         }
     };
@@ -167,5 +183,18 @@ public class UserJdbcRepository {
         } catch (Exception e) {
             return Optional.empty();
         }
+    }
+
+    // 取得總筆數用於分頁計算
+    public long countTotal() {
+        return count();
+    }
+
+    // 使用offset分頁查詢，包含機構名稱 - 一次取指定筆數
+    public List<UserSummaryDTO> findWithOffsetAndInstitutionName(int offset, int limit) {
+        String sql = "SELECT u.UserID, u.Account, u.PermissionType, u.AccountStatus, i.InstitutionName " +
+                     "FROM " + TABLE_NAME + " u LEFT JOIN institutions i ON u.InstitutionID = i.InstitutionID " +
+                     "ORDER BY u.UserID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        return jdbcTemplate.query(sql, USER_SUMMARY_ROW_MAPPER, offset, limit);
     }
 }
