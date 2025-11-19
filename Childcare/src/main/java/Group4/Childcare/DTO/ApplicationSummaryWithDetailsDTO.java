@@ -12,4 +12,7 @@ public class ApplicationSummaryWithDetailsDTO {
     private String institutionName;
     private String status;
     private String InstitutionID;
+    private String PName;
+    private String NationalID;
+    private String ParticipantType;
 }

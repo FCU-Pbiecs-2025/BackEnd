@@ -37,6 +37,8 @@ public class Applications {
     @Column(name = "ReviewUser", length = 50)
     private String reviewUser;
 
+    @Column(name = "ReviewDate")
+    private LocalDate reviewDate;
 
     @OneToMany(mappedBy = "applications")
     private List<ApplicationParticipants> applicationParticipants;

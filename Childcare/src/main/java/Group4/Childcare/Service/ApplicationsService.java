@@ -15,6 +15,7 @@ import Group4.Childcare.Model.ApplicationParticipants;
 import Group4.Childcare.Repository.ApplicationParticipantsRepository;
 import java.time.LocalDate;
 import Group4.Childcare.DTO.ApplicationSummaryWithDetailsDTO;
+import Group4.Childcare.DTO.ApplicationCaseDTO;
 
 @Service
 public class ApplicationsService {
@@ -104,5 +105,11 @@ public class ApplicationsService {
         return applicationsJdbcRepository.searchApplications(institutionID, institutionName, applicationID);
     }
 
+    // JDBC 方式查詢單一個案 - changed to return ApplicationCaseDTO
+    public Optional<ApplicationCaseDTO> getApplicationByIdJdbc(UUID id) {
+        return applicationsJdbcRepository.findApplicationCaseById(id);
+    }
+
 
 }
+
