@@ -1,0 +1,182 @@
+package Group4.Childcare.Repository;
+
+import Group4.Childcare.DTO.RevokeApplicationDTO;
+import Group4.Childcare.DTO.ApplicationParticipantDTO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public class RevokesJdbcRepository {
+    private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    public RevokesJdbcRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<RevokeApplicationDTO> findRevokedApplications(int page, int size) {
+        String sql =
+                "SELECT c.[CancellationID], c.[CancellationDate], " +
+                        "       a.[UserID], u.[Name] AS [UserName], " +
+                        "       a.[InstitutionID], i.[InstitutionName],c.[NationalID], " +
+                        "       c.[AbandonReason] " +
+                        "FROM [dbo].[cancellation] c " +
+                        "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
+                        "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
+                        "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
+                        "ORDER BY c.[CancellationDate] DESC " +
+                        "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                if (rowNum < 0) throw new IllegalStateException("invalid row"); // use rowNum to avoid unused-parameter warning
+                return new RevokeApplicationDTO(
+                UUID.fromString(rs.getString("CancellationID")),
+                rs.getDate("CancellationDate") != null ? rs.getDate("CancellationDate").toLocalDate().atStartOfDay() : null,
+                UUID.fromString(rs.getString("UserID")),
+                rs.getString("UserName"),
+                UUID.fromString(rs.getString("InstitutionID")),
+                rs.getString("InstitutionName"),
+                rs.getString("AbandonReason"),
+                rs.getString("NationalID")
+        );
+        }, page * size, size);
+    }
+
+    // New: total count for pagination
+    public long countRevokedApplications() {
+        // Counting cancellations is sufficient as each cancellation represents one revoked application
+        String sql = "SELECT COUNT(*) FROM [dbo].[cancellation]";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class);
+        return count != null ? count : 0L;
+    }
+
+    // 分頁搜尋撤銷申請（根據 CancellationID 和 NationalID）
+    public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String cancellationID, String nationalID, int page, int size) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT c.[CancellationID], c.[CancellationDate], " +
+            "a.[UserID], u.[Name] AS [UserName], " +
+            "a.[InstitutionID], i.[InstitutionName],c.[NationalID], " +
+            "c.[AbandonReason] " +
+            "FROM [dbo].[cancellation] c " +
+            "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
+            "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
+            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
+            "JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] ");
+        boolean hasWhere = false;
+        if (cancellationID != null && !cancellationID.isEmpty()) {
+            sql.append("WHERE c.[CancellationID] = ? ");
+            hasWhere = true;
+        }
+        if (nationalID != null && !nationalID.isEmpty()) {
+            sql.append(hasWhere ? "AND " : "WHERE ");
+            sql.append("ap.[NationalID] = ? ");
+        }
+        sql.append("ORDER BY c.[CancellationDate] DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        // 準備參數
+        java.util.List<Object> params = new java.util.ArrayList<>();
+        if (cancellationID != null && !cancellationID.isEmpty()) params.add(cancellationID);
+        if (nationalID != null && !nationalID.isEmpty()) params.add(nationalID);
+        params.add(page * size);
+        params.add(size);
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
+            if (rowNum < 0) throw new IllegalStateException("invalid row"); // use rowNum to avoid unused-parameter warning
+            return new RevokeApplicationDTO(
+            UUID.fromString(rs.getString("CancellationID")),
+            rs.getDate("CancellationDate") != null ? rs.getDate("CancellationDate").toLocalDate().atStartOfDay() : null,
+            UUID.fromString(rs.getString("UserID")),
+            rs.getString("UserName"),
+            UUID.fromString(rs.getString("InstitutionID")),
+            rs.getString("InstitutionName"),
+            rs.getString("AbandonReason"),
+            rs.getString("NationalID")
+        );
+        }, params.toArray());
+    }
+
+    // 條件搜尋總數（根據 CancellationID 與 NationalID）
+    public long countSearchRevokedApplications(String cancellationID, String nationalID) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT COUNT(*) FROM [dbo].[cancellation] c " +
+            "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
+            "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
+            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
+            "JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] ");
+        boolean hasWhere = false;
+        if (cancellationID != null && !cancellationID.isEmpty()) {
+            sql.append("WHERE c.[CancellationID] = ? ");
+            hasWhere = true;
+        }
+        if (nationalID != null && !nationalID.isEmpty()) {
+            sql.append(hasWhere ? "AND " : "WHERE ");
+            sql.append("ap.[NationalID] = ? ");
+        }
+        java.util.List<Object> params = new java.util.ArrayList<>();
+        if (cancellationID != null && !cancellationID.isEmpty()) params.add(cancellationID);
+        if (nationalID != null && !nationalID.isEmpty()) params.add(nationalID);
+        Long count = params.isEmpty()
+            ? jdbcTemplate.queryForObject(sql.toString(), Long.class)
+            : jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+        return count != null ? count : 0L;
+    }
+
+    // 新增：根據 CancellationID 取得撤銷資料（含基本欄位）
+    public RevokeApplicationDTO getRevokeByCancellationID(String cancellationID) {
+        String sql = "SELECT c.[CancellationID], c.[CancellationDate], a.[UserID], u.[Name] AS [UserName], a.[InstitutionID], i.[InstitutionName], c.[AbandonReason], c.[NationalID] FROM [dbo].[cancellation] c JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] WHERE c.[CancellationID] = ?";
+        return jdbcTemplate.queryForObject(sql, new Object[]{cancellationID}, (rs, rowNum) -> new RevokeApplicationDTO(
+                UUID.fromString(rs.getString("CancellationID")),
+                rs.getDate("CancellationDate") != null ? rs.getDate("CancellationDate").toLocalDate().atStartOfDay() : null,
+                UUID.fromString(rs.getString("UserID")),
+                rs.getString("UserName"),
+                UUID.fromString(rs.getString("InstitutionID")),
+                rs.getString("InstitutionName"),
+                rs.getString("AbandonReason"),
+                rs.getString("NationalID")
+        ));
+    }
+
+    // 新增：透過 cancellation LEFT JOIN application_participants 取得 participantType == 1 的家長資料
+    public List<ApplicationParticipantDTO> getParentsByCancellation(String cancellationID) {
+        String sql = "SELECT ap.[NationalID], ap.[Name], ap.[Gender], ap.[RelationShip], ap.[Occupation], ap.[PhoneNumber], ap.[HouseholdAddress], ap.[MailingAddress], ap.[Email], ap.[BirthDate], ap.[IsSuspended], ap.[SuspendEnd] FROM [dbo].[cancellation] c LEFT JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] LEFT JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] WHERE c.[CancellationID] = ? AND ap.[ParticipantType] = CAST(1 AS BIT)";
+        return jdbcTemplate.query(sql, new Object[]{cancellationID}, (rs, rowNum) -> {
+            ApplicationParticipantDTO dto = new ApplicationParticipantDTO();
+            dto.participantType = "1"; // or map as needed
+            dto.nationalID = rs.getString("NationalID");
+            dto.name = rs.getString("Name");
+            dto.gender = rs.getString("Gender") != null && rs.getString("Gender").equals("1") ? "男" : "女";
+            dto.relationShip = rs.getString("RelationShip");
+            dto.occupation = rs.getString("Occupation");
+            dto.phoneNumber = rs.getString("PhoneNumber");
+            dto.householdAddress = rs.getString("HouseholdAddress");
+            dto.mailingAddress = rs.getString("MailingAddress");
+            dto.email = rs.getString("Email");
+            dto.birthDate = rs.getString("BirthDate");
+            dto.isSuspended = rs.getString("IsSuspended") != null && (rs.getString("IsSuspended").equals("1") || rs.getString("IsSuspended").equalsIgnoreCase("true"));
+            dto.suspendEnd = rs.getString("SuspendEnd");
+            return dto;
+        });
+    }
+
+    // 新增：依據 CancellationID 與 NationalID 查 applications 與 application_participants 裡的資料
+    public ApplicationParticipantDTO getApplicationDetailByCancellationAndNationalID(String cancellationID, String nationalID) {
+        String sql = "SELECT ap.[NationalID], ap.[Name], ap.[Gender], ap.[RelationShip], ap.[Occupation], ap.[PhoneNumber], ap.[HouseholdAddress], ap.[MailingAddress], ap.[Email], ap.[BirthDate], ap.[IsSuspended], ap.[SuspendEnd] FROM [dbo].[cancellation] c LEFT JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] LEFT JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] WHERE c.[CancellationID] = ? AND ap.[NationalID] = ?";
+        return jdbcTemplate.queryForObject(sql, new Object[]{cancellationID, nationalID}, (rs, rowNum) -> {
+            ApplicationParticipantDTO dto = new ApplicationParticipantDTO();
+            dto.participantType = "0"; // Child participant type
+            dto.nationalID = rs.getString("NationalID");
+            dto.name = rs.getString("Name");
+            dto.gender = rs.getString("Gender") != null && rs.getString("Gender").equals("1") ? "男" : "女";
+            dto.relationShip = rs.getString("RelationShip");
+            dto.occupation = rs.getString("Occupation");
+            dto.phoneNumber = rs.getString("PhoneNumber");
+            dto.householdAddress = rs.getString("HouseholdAddress");
+            dto.mailingAddress = rs.getString("MailingAddress");
+            dto.email = rs.getString("Email");
+            dto.birthDate = rs.getString("BirthDate");
+            dto.isSuspended = rs.getString("IsSuspended") != null && (rs.getString("IsSuspended").equals("1") || rs.getString("IsSuspended").equalsIgnoreCase("true"));
+            dto.suspendEnd = rs.getString("SuspendEnd");
+            return dto;
+        });
+    }
+}

@@ -16,65 +16,74 @@ import java.util.UUID;
 @Repository
 public class ClassesJdbcRepository {
 
+    private final JdbcTemplate jdbcTemplate;
+
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    public ClassesJdbcRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     private static final String TABLE_NAME = "classes";
 
     // RowMapper for Classes entity
-    private static final RowMapper<Classes> CLASSES_ROW_MAPPER = new RowMapper<Classes>() {
-        @Override
-        public Classes mapRow(ResultSet rs, int rowNum) throws SQLException {
-            Classes classes = new Classes();
-            classes.setClassID(UUID.fromString(rs.getString("ClassID")));
-            classes.setClassName(rs.getString("ClassName"));
-            classes.setCapacity((Integer) rs.getObject("Capacity"));
-            classes.setCurrentStudents((Integer) rs.getObject("CurrentStudents"));
-            classes.setMinAgeDescription(rs.getString("MinAgeDescription"));
-            classes.setMaxAgeDescription(rs.getString("MaxAgeDescription"));
-            classes.setAdditionalInfo(rs.getString("AdditionalInfo"));
-
-            if (rs.getString("InstitutionID") != null) {
-                classes.setInstitutionID(UUID.fromString(rs.getString("InstitutionID")));
-            }
-
-            return classes;
+    private static final RowMapper<Classes> CLASSES_ROW_MAPPER = (rs, rowNum) -> {
+        Classes classes = new Classes();
+        classes.setClassID(UUID.fromString(rs.getString("ClassID")));
+        classes.setClassName(rs.getString("ClassName"));
+        // map TINYINT -> Byte, handling nulls robustly
+        Object capObj = rs.getObject("Capacity");
+        if (capObj != null) {
+            classes.setCapacity(((Number) capObj).byteValue());
+        } else {
+            classes.setCapacity(null);
         }
+        Object curObj = rs.getObject("CurrentStudents");
+        if (curObj != null) {
+            classes.setCurrentStudents(((Number) curObj).byteValue());
+        } else {
+            classes.setCurrentStudents(null);
+        }
+        classes.setMinAgeDescription(rs.getString("MinAgeDescription"));
+        classes.setMaxAgeDescription(rs.getString("MaxAgeDescription"));
+        classes.setAdditionalInfo(rs.getString("AdditionalInfo"));
+
+        String institutionId = rs.getString("InstitutionID");
+        if (institutionId != null) {
+            classes.setInstitutionID(UUID.fromString(institutionId));
+        }
+        return classes;
     };
 
     // RowMapper for ClassSummaryDTO (includes institution name via LEFT JOIN)
-    private static final RowMapper<ClassSummaryDTO> CLASS_SUMMARY_ROW_MAPPER = new RowMapper<ClassSummaryDTO>() {
-        @Override
-        public ClassSummaryDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ClassSummaryDTO dto = new ClassSummaryDTO();
-            String classIdStr = rs.getString("ClassID");
-            if (classIdStr != null) {
-                dto.setClassID(UUID.fromString(classIdStr));
-            }
-            dto.setClassName(rs.getString("ClassName"));
-
-            // Capacity may be nullable in DB; use getObject to check
-            Object capObj = rs.getObject("Capacity");
-            if (capObj != null) {
-                dto.setCapacity(rs.getInt("Capacity"));
-            } else {
-                dto.setCapacity(null);
-            }
-
-            dto.setMinAgeDescription(rs.getString("MinAgeDescription"));
-            dto.setMaxAgeDescription(rs.getString("MaxAgeDescription"));
-
-            // InstitutionName comes from the joined institutions table; may be null
-            dto.setInstitutionName(rs.getString("InstitutionName"));
-
-            // InstitutionID from the joined institutions table; may be null
-            String institutionIdStr = rs.getString("InstitutionID");
-            if (institutionIdStr != null) {
-                dto.setInstitutionID(UUID.fromString(institutionIdStr));
-            }
-
-            return dto;
+    private static final RowMapper<ClassSummaryDTO> CLASS_SUMMARY_ROW_MAPPER = (rs, rowNum) -> {
+        ClassSummaryDTO dto = new ClassSummaryDTO();
+        String classIdStr = rs.getString("ClassID");
+        if (classIdStr != null) {
+            dto.setClassID(UUID.fromString(classIdStr));
         }
+        dto.setClassName(rs.getString("ClassName"));
+
+        // Capacity may be nullable in DB; use getObject to check
+        Object capObj = rs.getObject("Capacity");
+        if (capObj != null) {
+            dto.setCapacity(rs.getInt("Capacity"));
+        } else {
+            dto.setCapacity(null);
+        }
+
+        dto.setMinAgeDescription(rs.getString("MinAgeDescription"));
+        dto.setMaxAgeDescription(rs.getString("MaxAgeDescription"));
+
+        // InstitutionName comes from the joined institutions table; may be null
+        dto.setInstitutionName(rs.getString("InstitutionName"));
+
+        // InstitutionID from the joined institutions table; may be null
+        String institutionIdStr = rs.getString("InstitutionID");
+        if (institutionIdStr != null) {
+            dto.setInstitutionID(UUID.fromString(institutionIdStr));
+        }
+
+        return dto;
     };
 
     // Save method
@@ -208,20 +217,20 @@ public class ClassesJdbcRepository {
      */
     public List<java.util.Map<String, Object>> findInstitutionsWithClassesByName(String institutionName) {
         String sql = """
-            SELECT 
-                i.InstitutionID, i.InstitutionName, i.ContactPerson, i.Address, 
-                i.PhoneNumber, i.Fax, i.Email, i.RelatedLinks, i.Description, 
-                i.ResponsiblePerson, i.ImagePath, i.CreatedUser, i.CreatedTime, 
+            SELECT
+                i.InstitutionID, i.InstitutionName, i.ContactPerson, i.Address,
+                i.PhoneNumber, i.Fax, i.Email, i.RelatedLinks, i.Description,
+                i.ResponsiblePerson, i.ImagePath, i.CreatedUser, i.CreatedTime,
                 i.UpdatedUser, i.UpdatedTime, i.Latitude, i.Longitude,
-                c.ClassID, c.ClassName, c.Capacity, c.CurrentStudents, 
+                c.ClassID, c.ClassName, c.Capacity, c.CurrentStudents,
                 c.MinAgeDescription, c.MaxAgeDescription, c.AdditionalInfo
-            FROM institutions i 
-            LEFT JOIN classes c ON i.InstitutionID = c.InstitutionID 
+            FROM institutions i
+            LEFT JOIN classes c ON i.InstitutionID = c.InstitutionID
             WHERE i.InstitutionName LIKE ?
             ORDER BY i.InstitutionName, c.ClassName
             """;
 
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, _rowNum) -> {
             java.util.Map<String, Object> result = new java.util.HashMap<>();
 
             // Institution data

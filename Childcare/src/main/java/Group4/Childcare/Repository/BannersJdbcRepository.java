@@ -203,7 +203,7 @@ public class BannersJdbcRepository {
 
     // Find active banners: Status = true, now between StartTime and EndTime
     public List<Banners> findActiveBanners() {
-        String sql = "SELECT * FROM " + TABLE_NAME + " WHERE Status = 1 AND ? >= StartTime AND ? <= EndTime ORDER BY SortOrder";
+        String sql = "SELECT * FROM " + TABLE_NAME + " WHERE Status = 0 AND ? >= StartTime AND ? <= EndTime ORDER BY SortOrder";
         Timestamp now = new Timestamp(System.currentTimeMillis());
         return jdbcTemplate.query(sql, BANNERS_ROW_MAPPER, now, now);
     }

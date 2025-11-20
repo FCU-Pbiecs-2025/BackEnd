@@ -3,7 +3,7 @@ package Group4.Childcare.Model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -19,23 +19,25 @@ public class PasswordResetToken {
     @Column(name = "UserID", columnDefinition = "UNIQUEIDENTIFIER", nullable = false)
     private UUID userId;
 
-    @Column(name = "TokenHash", length = 128, nullable = false)
+    // 對應規格 NVARCHAR(255)
+    @Column(name = "TokenHash", length = 255, nullable = false)
     private String tokenHash;
 
-    @Column(name = "ExpiresAt", nullable = false)
-    private Instant expiresAt;
+    // DATETIME2 對應 Java LocalDateTime
+    @Column(name = "ExpiresAt", columnDefinition = "DATETIME2", nullable = false)
+    private LocalDateTime expiresAt;
 
-    @Column(name = "CreatedAt", nullable = false)
-    private Instant createdAt;
+    @Column(name = "CreatedAt", columnDefinition = "DATETIME2", nullable = false)
+    private LocalDateTime createdAt;
 
-    @Column(name = "UsedAt")
-    private Instant usedAt;
+    @Column(name = "UsedAt", columnDefinition = "DATETIME2")
+    private LocalDateTime usedAt;
 
     @Column(name = "Invalidated", nullable = false)
     private boolean invalidated = false;
 
     public boolean isExpired() {
-        return expiresAt != null && Instant.now().isAfter(expiresAt);
+        return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
     }
 
     public boolean isUsable() {

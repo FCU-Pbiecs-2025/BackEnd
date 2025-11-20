@@ -9,8 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -18,17 +17,21 @@ import java.util.Optional;
 @Service
 public class PasswordResetService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordResetTokenRepository tokenRepository;
+    private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    private PasswordResetTokenRepository tokenRepository;
-
-    @Autowired
-    private EmailService emailService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public PasswordResetService(UserRepository userRepository,
+                                PasswordResetTokenRepository tokenRepository,
+                                EmailService emailService,
+                                PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
+        this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int TOKEN_BYTES = 32; // 256 bits
@@ -50,8 +53,8 @@ public class PasswordResetService {
         PasswordResetToken token = new PasswordResetToken();
         token.setUserId(user.getUserID());
         token.setTokenHash(tokenHash);
-        token.setCreatedAt(Instant.now());
-        token.setExpiresAt(Instant.now().plus(EXPIRY_MINUTES, ChronoUnit.MINUTES));
+        token.setCreatedAt(LocalDateTime.now());
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(EXPIRY_MINUTES));
         tokenRepository.save(token);
         // send email with raw token
         emailService.sendPasswordResetEmail(email, rawToken);
@@ -79,7 +82,7 @@ public class PasswordResetService {
         // basic password policy
         if (newPassword == null || newPassword.length() < 6) return false;
         user.setPassword(passwordEncoder.encode(newPassword));
-        token.setUsedAt(Instant.now());
+        token.setUsedAt(LocalDateTime.now());
         tokenRepository.save(token);
         userRepository.save(user);
         return true;
@@ -103,9 +106,8 @@ public class PasswordResetService {
     }
 
     public void cleanupExpired() {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         List<PasswordResetToken> expired = tokenRepository.findByExpiresAtBefore(now);
         expired.forEach(t -> tokenRepository.delete(t));
     }
 }
-
