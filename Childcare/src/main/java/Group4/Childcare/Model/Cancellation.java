@@ -29,4 +29,7 @@ public class Cancellation {
 
     @Column(name = "ConfirmDate")
     private LocalDate confirmDate;
+
+    @Column(name = "NationalID", length = 20)
+    private String nationalID;
 }

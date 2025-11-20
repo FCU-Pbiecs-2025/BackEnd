@@ -30,11 +30,11 @@ public class Classes {
     @Column(name = "CurrentStudents")
     private Integer currentStudents;
 
-    @Column(name = "MinAgeDescription", length = 50)
-    private String minAgeDescription;
+    @Column(name = "MinAgeDescription")
+    private Integer minAgeDescription;
 
-    @Column(name = "MaxAgeDescription", length = 50)
-    private String maxAgeDescription;
+    @Column(name = "MaxAgeDescription")
+    private Integer maxAgeDescription;
 
     @Column(name = "AdditionalInfo", length = 100)
     private String additionalInfo;

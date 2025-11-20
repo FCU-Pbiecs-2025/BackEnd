@@ -65,4 +65,7 @@ public class Institutions {
 
     @Column(name = "Longitude", precision = 9, scale = 6)
     private java.math.BigDecimal longitude;
+
+    @Column(name = "InstitutionsType")
+    private Boolean institutionsType;
 }

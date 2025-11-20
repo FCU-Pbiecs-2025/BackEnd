@@ -22,6 +22,9 @@ public class Applications {
     @Column(name = "ApplicationDate")
     private LocalDate applicationDate;
 
+    @Column(name = "CaseNumber")
+    private Integer caseNumber;
+
     @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID institutionID;
 
@@ -33,12 +36,6 @@ public class Applications {
 
     @Column(name = "AttachmentPath", columnDefinition = "NVARCHAR(MAX)")
     private String attachmentPath;
-
-    @Column(name = "ReviewUser", length = 50)
-    private String reviewUser;
-
-    @Column(name = "ReviewDate")
-    private LocalDate reviewDate;
 
     @OneToMany(mappedBy = "applications")
     private List<ApplicationParticipants> applicationParticipants;

@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -15,6 +16,9 @@ import java.util.UUID;
 public class ApplicationParticipants {
 
     @Id
+    @Column(name = "ParticipantID", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID participantID;
+
     @Column(name = "ApplicationID", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID applicationID;
 
@@ -68,6 +72,12 @@ public class ApplicationParticipants {
 
     @Column(name = "ClassID", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID classID;
+
+    @Column(name = "ReviewUser", length = 50)
+    private String reviewUser;
+
+    @Column(name = "ReviewDate")
+    private LocalDateTime reviewDate;
 
     @ManyToOne
     @JoinColumn(name = "ApplicationID", insertable = false, updatable = false)

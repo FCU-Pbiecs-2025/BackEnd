@@ -19,97 +19,109 @@ import Group4.Childcare.DTO.ApplicationCaseDTO;
 
 @Service
 public class ApplicationsService {
-    @Autowired
-    private ApplicationsRepository applicationsRepository;
-    @Autowired
-    private ApplicationParticipantsRepository applicationParticipantsRepository;
-    @Autowired
-    private ApplicationsJdbcRepository applicationsJdbcRepository;
+  @Autowired
+  private ApplicationsRepository applicationsRepository;
+  @Autowired
+  private ApplicationParticipantsRepository applicationParticipantsRepository;
+  @Autowired
+  private ApplicationsJdbcRepository applicationsJdbcRepository;
 
-    public Applications create(Applications entity) {
-        return applicationsRepository.save(entity);
+  public Applications create(Applications entity) {
+    return applicationsRepository.save(entity);
+  }
+
+  public Optional<Applications> getById(UUID id) {
+    return applicationsRepository.findById(id);
+  }
+
+  public List<Applications> getAll() {
+    return applicationsRepository.findAll();
+  }
+
+  public Applications update(UUID id, Applications entity) {
+    entity.setApplicationID(id);
+    return applicationsRepository.save(entity);
+  }
+
+  public List<ApplicationSummaryDTO> getSummaryByUserID(UUID userID) {
+    return applicationsRepository.findSummaryByUserID(userID);
+  }
+
+  // New: expose JDBC offset query
+  public List<ApplicationSummaryWithDetailsDTO> getSummariesWithOffset(int offset, int limit) {
+    return applicationsJdbcRepository.findSummariesWithOffset(offset, limit);
+  }
+
+  public void apply(ApplicationApplyDTO dto) {
+    Applications app = new Applications();
+    app.setApplicationID(UUID.randomUUID());
+    app.setApplicationDate(LocalDate.now());
+    // 身分類別
+    app.setIdentityType((byte)("低收入戶".equals(dto.identityType) ? 1 : "中低收入戶".equals(dto.identityType) ? 2 : 0));
+    // 附件路徑（多檔名以逗號分隔）
+    if (dto.attachmentFiles != null && !dto.attachmentFiles.isEmpty()) {
+      app.setAttachmentPath(String.join(",", dto.attachmentFiles));
+    }
+    applicationsRepository.save(app);
+    // 申請人與家長資料
+    if (dto.participants != null) {
+      for (ApplicationParticipantDTO p : dto.participants) {
+        ApplicationParticipants entity = new ApplicationParticipants();
+        entity.setApplicationID(app.getApplicationID());
+        entity.setParticipantType("家長".equals(p.participantType));
+        entity.setNationalID(p.nationalID);
+        entity.setName(p.name);
+        entity.setGender("男".equals(p.gender));
+        entity.setRelationShip(p.relationShip);
+        entity.setOccupation(p.occupation);
+        entity.setPhoneNumber(p.phoneNumber);
+        entity.setHouseholdAddress(p.householdAddress);
+        entity.setMailingAddress(p.mailingAddress);
+        entity.setEmail(p.email);
+        entity.setBirthDate(p.birthDate != null && !p.birthDate.isEmpty() ? LocalDate.parse(p.birthDate) : null);
+        entity.setIsSuspended(p.isSuspended);
+        entity.setSuspendEnd(p.suspendEnd != null && !p.suspendEnd.isEmpty() ? LocalDate.parse(p.suspendEnd) : null);
+        entity.setCurrentOrder(p.currentOrder);
+        entity.setStatus(p.status);
+        entity.setClassID(p.classID != null && !p.classID.isEmpty() ? UUID.fromString(p.classID) : null);
+        // participant-level review fields
+        entity.setReviewUser(p.revieweUser);
+        entity.setReviewDate(p.reviewDate);
+        applicationParticipantsRepository.save(entity);
+      }
+    }
+  }
+
+  // New method to get total applications count
+  public long getTotalApplicationsCount() {
+    return applicationsRepository.count();
+  }
+
+  // New method to map an Applications entity to ApplicationSummaryWithDetailsDTO
+  public Optional<ApplicationSummaryWithDetailsDTO> getApplicationSummaryWithDetailsById(UUID id) {
+    return applicationsJdbcRepository.findApplicationSummaryWithDetailsById(id);
+
+  }
+
+  // New method to search applications with optional parameters
+  public List<ApplicationSummaryWithDetailsDTO> searchApplications(String institutionID, String institutionName, String applicationID) {
+    return applicationsJdbcRepository.searchApplications(institutionID, institutionName, applicationID);
+  }
+
+  // JDBC 方式查詢單一個案 - changed to return ApplicationCaseDTO
+  public Optional<ApplicationCaseDTO> getApplicationByIdJdbc(UUID id, String nationalID) {
+        return applicationsJdbcRepository.findApplicationCaseById(id, nationalID);
     }
 
-    public Optional<Applications> getById(UUID id) {
-        return applicationsRepository.findById(id);
-    }
+  // Update single participant's status and reason, optionally set reviewer and reviewDate
+  public void updateParticipantStatusReason(UUID id, String nationalID, String status, String reason, String reviewer, java.time.LocalDateTime reviewDate) {
+    applicationsJdbcRepository.updateParticipantStatusReason(id, nationalID, status, reason, reviewer, reviewDate);
+  }
 
-    public List<Applications> getAll() {
-        return applicationsRepository.findAll();
-    }
-
-    public Applications update(UUID id, Applications entity) {
-        entity.setApplicationID(id);
-        return applicationsRepository.save(entity);
-    }
-
-    public List<ApplicationSummaryDTO> getSummaryByUserID(UUID userID) {
-        return applicationsRepository.findSummaryByUserID(userID);
-    }
-
-    // New: expose JDBC offset query
-    public List<ApplicationSummaryWithDetailsDTO> getSummariesWithOffset(int offset, int limit) {
-        return applicationsJdbcRepository.findSummariesWithOffset(offset, limit);
-    }
-
-    public void apply(ApplicationApplyDTO dto) {
-        Applications app = new Applications();
-        app.setApplicationID(UUID.randomUUID());
-        app.setApplicationDate(LocalDate.now());
-        // 身分類別
-        app.setIdentityType((byte)("低收入戶".equals(dto.identityType) ? 1 : "中低收入戶".equals(dto.identityType) ? 2 : 0));
-        // 附件路徑（多檔名以逗號分隔）
-        if (dto.attachmentFiles != null && !dto.attachmentFiles.isEmpty()) {
-            app.setAttachmentPath(String.join(",", dto.attachmentFiles));
-        }
-        applicationsRepository.save(app);
-        // 申請人與家長資料
-        if (dto.participants != null) {
-            for (ApplicationParticipantDTO p : dto.participants) {
-                ApplicationParticipants entity = new ApplicationParticipants();
-                entity.setApplicationID(app.getApplicationID());
-                entity.setParticipantType("家長".equals(p.participantType));
-                entity.setNationalID(p.nationalID);
-                entity.setName(p.name);
-                entity.setGender("男".equals(p.gender));
-                entity.setRelationShip(p.relationShip);
-                entity.setOccupation(p.occupation);
-                entity.setPhoneNumber(p.phoneNumber);
-                entity.setHouseholdAddress(p.householdAddress);
-                entity.setMailingAddress(p.mailingAddress);
-                entity.setEmail(p.email);
-                entity.setBirthDate(p.birthDate != null && !p.birthDate.isEmpty() ? LocalDate.parse(p.birthDate) : null);
-                entity.setIsSuspended(p.isSuspended);
-                entity.setSuspendEnd(p.suspendEnd != null && !p.suspendEnd.isEmpty() ? LocalDate.parse(p.suspendEnd) : null);
-                entity.setCurrentOrder(p.currentOrder);
-                entity.setStatus(p.status);
-                entity.setClassID(p.classID != null && !p.classID.isEmpty() ? UUID.fromString(p.classID) : null);
-                applicationParticipantsRepository.save(entity);
-            }
-        }
-    }
-
-    // New method to get total applications count
-    public long getTotalApplicationsCount() {
-        return applicationsRepository.count();
-    }
-
-    // New method to map an Applications entity to ApplicationSummaryWithDetailsDTO
-    public Optional<ApplicationSummaryWithDetailsDTO> getApplicationSummaryWithDetailsById(UUID id) {
-        return applicationsJdbcRepository.findApplicationSummaryWithDetailsById(id);
-
-    }
-
-    // New method to search applications with optional parameters
-    public List<ApplicationSummaryWithDetailsDTO> searchApplications(String institutionID, String institutionName, String applicationID) {
-        return applicationsJdbcRepository.searchApplications(institutionID, institutionName, applicationID);
-    }
-
-    // JDBC 方式查詢單一個案 - changed to return ApplicationCaseDTO
-    public Optional<ApplicationCaseDTO> getApplicationByIdJdbc(UUID id) {
-        return applicationsJdbcRepository.findApplicationCaseById(id);
-    }
+  // New: update application case (participants + review fields)
+  public void updateApplicationCase(UUID id, ApplicationCaseDTO dto) {
+    applicationsJdbcRepository.updateApplicationCase(id, dto);
+  }
 
 
 }
-
