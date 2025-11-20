@@ -7,8 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,27 +24,36 @@ public class ClassesJdbcRepository {
     private static final String TABLE_NAME = "classes";
 
     // RowMapper for Classes entity
-    private static final RowMapper<Classes> CLASSES_ROW_MAPPER = (rs, rowNum) -> {
+    private static final RowMapper<Classes> CLASSES_ROW_MAPPER = (rs, _) -> {
         Classes classes = new Classes();
         classes.setClassID(UUID.fromString(rs.getString("ClassID")));
         classes.setClassName(rs.getString("ClassName"));
-        // map TINYINT -> Byte, handling nulls robustly
+        // map TINYINT/INT -> Integer, handling nulls robustly
         Object capObj = rs.getObject("Capacity");
         if (capObj != null) {
-            classes.setCapacity(((Number) capObj).byteValue());
+            classes.setCapacity(((Number) capObj).intValue());
         } else {
             classes.setCapacity(null);
         }
         Object curObj = rs.getObject("CurrentStudents");
         if (curObj != null) {
-            classes.setCurrentStudents(((Number) curObj).byteValue());
+            classes.setCurrentStudents(((Number) curObj).intValue());
         } else {
             classes.setCurrentStudents(null);
         }
-        classes.setMinAgeDescription(rs.getString("MinAgeDescription"));
-        classes.setMaxAgeDescription(rs.getString("MaxAgeDescription"));
+        Object minAgeObj = rs.getObject("MinAgeDescription");
+        if (minAgeObj != null) {
+            classes.setMinAgeDescription(((Number) minAgeObj).intValue());
+        } else {
+            classes.setMinAgeDescription(null);
+        }
+        Object maxAgeObj = rs.getObject("MaxAgeDescription");
+        if (maxAgeObj != null) {
+            classes.setMaxAgeDescription(((Number) maxAgeObj).intValue());
+        } else {
+            classes.setMaxAgeDescription(null);
+        }
         classes.setAdditionalInfo(rs.getString("AdditionalInfo"));
-
         String institutionId = rs.getString("InstitutionID");
         if (institutionId != null) {
             classes.setInstitutionID(UUID.fromString(institutionId));
@@ -55,34 +62,36 @@ public class ClassesJdbcRepository {
     };
 
     // RowMapper for ClassSummaryDTO (includes institution name via LEFT JOIN)
-    private static final RowMapper<ClassSummaryDTO> CLASS_SUMMARY_ROW_MAPPER = (rs, rowNum) -> {
+    private static final RowMapper<ClassSummaryDTO> CLASS_SUMMARY_ROW_MAPPER = (rs, _) -> {
         ClassSummaryDTO dto = new ClassSummaryDTO();
         String classIdStr = rs.getString("ClassID");
         if (classIdStr != null) {
             dto.setClassID(UUID.fromString(classIdStr));
         }
         dto.setClassName(rs.getString("ClassName"));
-
-        // Capacity may be nullable in DB; use getObject to check
         Object capObj = rs.getObject("Capacity");
         if (capObj != null) {
-            dto.setCapacity(rs.getInt("Capacity"));
+            dto.setCapacity(((Number) capObj).intValue());
         } else {
             dto.setCapacity(null);
         }
-
-        dto.setMinAgeDescription(rs.getString("MinAgeDescription"));
-        dto.setMaxAgeDescription(rs.getString("MaxAgeDescription"));
-
-        // InstitutionName comes from the joined institutions table; may be null
+        Object minAgeObj = rs.getObject("MinAgeDescription");
+        if (minAgeObj != null) {
+            dto.setMinAgeDescription(String.valueOf(((Number) minAgeObj).intValue()));
+        } else {
+            dto.setMinAgeDescription(null);
+        }
+        Object maxAgeObj = rs.getObject("MaxAgeDescription");
+        if (maxAgeObj != null) {
+            dto.setMaxAgeDescription(String.valueOf(((Number) maxAgeObj).intValue()));
+        } else {
+            dto.setMaxAgeDescription(null);
+        }
         dto.setInstitutionName(rs.getString("InstitutionName"));
-
-        // InstitutionID from the joined institutions table; may be null
         String institutionIdStr = rs.getString("InstitutionID");
         if (institutionIdStr != null) {
             dto.setInstitutionID(UUID.fromString(institutionIdStr));
         }
-
         return dto;
     };
 
@@ -230,7 +239,7 @@ public class ClassesJdbcRepository {
             ORDER BY i.InstitutionName, c.ClassName
             """;
 
-        return jdbcTemplate.query(sql, (rs, _rowNum) -> {
+        return jdbcTemplate.query(sql, (rs, _) -> {
             java.util.Map<String, Object> result = new java.util.HashMap<>();
 
             // Institution data
@@ -261,8 +270,8 @@ public class ClassesJdbcRepository {
                 classData.put("className", rs.getString("ClassName"));
                 classData.put("capacity", rs.getObject("Capacity"));
                 classData.put("currentStudents", rs.getObject("CurrentStudents"));
-                classData.put("minAgeDescription", rs.getString("MinAgeDescription"));
-                classData.put("maxAgeDescription", rs.getString("MaxAgeDescription"));
+                classData.put("minAgeDescription", rs.getObject("MinAgeDescription"));
+                classData.put("maxAgeDescription", rs.getObject("MaxAgeDescription"));
                 classData.put("additionalInfo", rs.getString("AdditionalInfo"));
                 result.put("class", classData);
             }
