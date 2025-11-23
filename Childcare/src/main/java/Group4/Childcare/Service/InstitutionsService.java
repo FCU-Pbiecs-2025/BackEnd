@@ -2,6 +2,7 @@ package Group4.Childcare.Service;
 
 import Group4.Childcare.Model.Institutions;
 import Group4.Childcare.DTO.InstitutionSummaryDTO;
+import Group4.Childcare.DTO.InstitutionSimpleDTO;
 import Group4.Childcare.Repository.InstitutionsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,5 +34,13 @@ public class InstitutionsService {
 
     public List<InstitutionSummaryDTO> getSummaryAll() {
         return repository.findSummaryData();
+    }
+
+    /**
+     * 取得所有機構的 ID 和 name
+     * @return List<InstitutionSimpleDTO>
+     */
+    public List<InstitutionSimpleDTO> getAllSimple() {
+        return repository.findAllSimple();
     }
 }

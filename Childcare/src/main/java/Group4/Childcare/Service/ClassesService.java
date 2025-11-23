@@ -4,6 +4,7 @@ import Group4.Childcare.Model.Classes;
 import Group4.Childcare.Repository.ClassesJdbcRepository;
 import Group4.Childcare.Repository.ClassesRepository;
 import Group4.Childcare.DTO.ClassSummaryDTO;
+import Group4.Childcare.DTO.ClassNameDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -144,5 +145,14 @@ public class ClassesService {
      */
     public List<ClassSummaryDTO> searchClassesByInstitutionName(String institutionName) {
         return jdbcRepository.findClassesByInstitutionName(institutionName);
+    }
+
+    /**
+     * 根據機構UUID查詢該機構的所有班級名稱
+     * @param institutionId 機構UUID
+     * @return List<ClassNameDTO> 班級名稱列表
+     */
+    public List<ClassNameDTO> getClassNamesByInstitutionId(UUID institutionId) {
+        return jdbcRepository.findClassNamesByInstitutionId(institutionId);
     }
 }

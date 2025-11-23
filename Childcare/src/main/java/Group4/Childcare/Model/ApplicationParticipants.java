@@ -73,8 +73,6 @@ public class ApplicationParticipants {
     @Column(name = "ClassID", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID classID;
 
-    @Column(name = "ReviewUser", length = 50)
-    private String reviewUser;
 
     @Column(name = "ReviewDate")
     private LocalDateTime reviewDate;

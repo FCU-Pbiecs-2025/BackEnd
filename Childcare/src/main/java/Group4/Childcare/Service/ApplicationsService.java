@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
 import Group4.Childcare.DTO.ApplicationApplyDTO;
 import Group4.Childcare.DTO.ApplicationParticipantDTO;
 import Group4.Childcare.Model.ApplicationParticipants;
@@ -16,6 +17,8 @@ import Group4.Childcare.Repository.ApplicationParticipantsRepository;
 import java.time.LocalDate;
 import Group4.Childcare.DTO.ApplicationSummaryWithDetailsDTO;
 import Group4.Childcare.DTO.ApplicationCaseDTO;
+import Group4.Childcare.DTO.CaseOffsetListDTO;
+import Group4.Childcare.DTO.CaseEditUpdateDTO;
 
 @Service
 public class ApplicationsService {
@@ -25,6 +28,8 @@ public class ApplicationsService {
   private ApplicationParticipantsRepository applicationParticipantsRepository;
   @Autowired
   private ApplicationsJdbcRepository applicationsJdbcRepository;
+  @Autowired
+  private Group4.Childcare.Service.FileService fileService;
 
   public Applications create(Applications entity) {
     return applicationsRepository.save(entity);
@@ -85,7 +90,6 @@ public class ApplicationsService {
         entity.setStatus(p.status);
         entity.setClassID(p.classID != null && !p.classID.isEmpty() ? UUID.fromString(p.classID) : null);
         // participant-level review fields
-        entity.setReviewUser(p.revieweUser);
         entity.setReviewDate(p.reviewDate);
         applicationParticipantsRepository.save(entity);
       }
@@ -113,9 +117,9 @@ public class ApplicationsService {
         return applicationsJdbcRepository.findApplicationCaseById(id, nationalID);
     }
 
-  // Update single participant's status and reason, optionally set reviewer and reviewDate
-  public void updateParticipantStatusReason(UUID id, String nationalID, String status, String reason, String reviewer, java.time.LocalDateTime reviewDate) {
-    applicationsJdbcRepository.updateParticipantStatusReason(id, nationalID, status, reason, reviewer, reviewDate);
+  // Update single participant's status and reason, optionally set reviewDate
+  public void updateParticipantStatusReason(UUID id, String nationalID, String status, String reason, java.time.LocalDateTime reviewDate) {
+    applicationsJdbcRepository.updateParticipantStatusReason(id, nationalID, status, reason, reviewDate);
   }
 
   // New: update application case (participants + review fields)
@@ -123,5 +127,43 @@ public class ApplicationsService {
     applicationsJdbcRepository.updateApplicationCase(id, dto);
   }
 
+  /**
+   * 查詢案件列表（分頁）
+   * @param offset 分頁起始位置
+   * @param limit 每頁筆數
+   * @param status 審核狀態（可選）
+   * @param institutionId 機構ID（可選）
+   * @param applicationId 案件ID（可選）
+   * @param classId 班級ID（可選）
+   * @param applicantNationalId 申請人身分證字號（可選）
+   * @param caseNumber 案件流水號（可選）
+   * @param identityType 身分別（可選）
+   * @return List<CaseOffsetListDTO>
+   */
+  public List<CaseOffsetListDTO> getCaseListWithOffset(int offset, int limit, String status, UUID institutionId,
+                                                        UUID applicationId, UUID classId, String applicantNationalId,
+                                                        Integer caseNumber, String identityType) {
+    return applicationsJdbcRepository.findCaseListWithOffset(offset, limit, status, institutionId,
+                                                             applicationId, classId, applicantNationalId,
+                                                             caseNumber, identityType);
+  }
+
+  /**
+   * 查詢案件列表的總筆數
+   * @param status 審核狀態（可選）
+   * @param institutionId 機構ID（可選）
+   * @param applicationId 案件ID（可選）
+   * @param classId 班級ID（可選）
+   * @param applicantNationalId 申請人身分證字號（可選）
+   * @param caseNumber 案件流水號（可選）
+   * @param identityType 身分別（可選）
+   * @return 總筆數
+   */
+  public long countCaseList(String status, UUID institutionId, UUID applicationId, UUID classId,
+                            String applicantNationalId, Integer caseNumber, String identityType) {
+    return applicationsJdbcRepository.countCaseList(status, institutionId, applicationId, classId,
+                                                    applicantNationalId, caseNumber, identityType);
+  }
 
 }
+

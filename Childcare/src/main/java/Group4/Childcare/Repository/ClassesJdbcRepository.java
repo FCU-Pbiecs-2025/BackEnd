@@ -2,6 +2,7 @@ package Group4.Childcare.Repository;
 
 import Group4.Childcare.Model.Classes;
 import Group4.Childcare.DTO.ClassSummaryDTO;
+import Group4.Childcare.DTO.ClassNameDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -59,6 +60,17 @@ public class ClassesJdbcRepository {
             classes.setInstitutionID(UUID.fromString(institutionId));
         }
         return classes;
+    };
+
+    // RowMapper for ClassNameDTO (only class name)
+    private static final RowMapper<ClassNameDTO> CLASS_NAME_ROW_MAPPER = (rs, _) -> {
+        ClassNameDTO dto = new ClassNameDTO();
+        String classIdStr = rs.getString("ClassID");
+        if (classIdStr != null) {
+            dto.setClassID(UUID.fromString(classIdStr));
+        }
+        dto.setClassName(rs.getString("ClassName"));
+        return dto;
     };
 
     // RowMapper for ClassSummaryDTO (includes institution name via LEFT JOIN)
@@ -291,5 +303,17 @@ public class ClassesJdbcRepository {
                      "WHERE i.InstitutionName LIKE ? " +
                      "ORDER BY i.InstitutionName, c.ClassName";
         return jdbcTemplate.query(sql, CLASS_SUMMARY_ROW_MAPPER, "%" + institutionName + "%");
+    }
+
+    /**
+     * 根據機構UUID查詢該機構的所有班級名稱
+     * @param institutionId 機構UUID
+     * @return List<ClassNameDTO> 班級名稱列表
+     */
+    public List<ClassNameDTO> findClassNamesByInstitutionId(UUID institutionId) {
+        String sql = "SELECT c.ClassID, c.ClassName FROM " + TABLE_NAME + " c " +
+                     "WHERE c.InstitutionID = ? " +
+                     "ORDER BY c.ClassName";
+        return jdbcTemplate.query(sql, CLASS_NAME_ROW_MAPPER, institutionId.toString());
     }
 }

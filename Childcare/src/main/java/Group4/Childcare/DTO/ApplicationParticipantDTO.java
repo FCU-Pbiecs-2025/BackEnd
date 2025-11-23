@@ -22,7 +22,6 @@ public class ApplicationParticipantDTO {
     public String status;
     public String reason;
     public String classID;
-    public String revieweUser;
     public LocalDateTime reviewDate;
 }
 
