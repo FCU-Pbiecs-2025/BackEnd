@@ -5,6 +5,8 @@ import Group4.Childcare.DTO.ApplicationSummaryWithDetailsDTO;
 import Group4.Childcare.DTO.ApplicationCaseDTO;
 import Group4.Childcare.DTO.ApplicationParticipantDTO;
 import Group4.Childcare.DTO.CaseOffsetListDTO;
+import Group4.Childcare.DTO.CaseEditUpdateDTO;
+import Group4.Childcare.DTO.UserSimpleDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -47,7 +49,6 @@ public class ApplicationsJdbcRepository {
     }
     dto.setName(rs.getString("Name"));
     dto.setInstitutionName(rs.getString("InstitutionName"));
-    dto.setStatus(rs.getString("Status"));
     dto.setInstitutionID(rs.getString("InstitutionID"));
     dto.setNationalID(rs.getString("NationalID"));
     try { dto.setParticipantType(rs.getString("ParticipantType")); } catch (Exception ex) { dto.setParticipantType(null); }
@@ -125,7 +126,6 @@ public class ApplicationsJdbcRepository {
       dto.setApplicationDate(rs.getDate("ApplicationDate").toLocalDate());
       dto.setName(rs.getString("name"));
       dto.setInstitutionName(rs.getString("institutionName"));
-      dto.setStatus(rs.getString("Status"));
       dto.setNationalID(rs.getString("NationalID"));
       dto.setParticipantType(rs.getString("ParticipantType"));
       return dto;
@@ -518,6 +518,110 @@ public class ApplicationsJdbcRepository {
 
     Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
     return count != null ? count : 0;
+  }
+
+  /**
+   * 根據身分證字號查詢參與者及其完整的案件信息
+   * @param nationalID 身分證字號
+   * @return CaseEditUpdateDTO 列表
+   */
+  public List<CaseEditUpdateDTO> findByNationalID(String nationalID) {
+    String sql = "SELECT DISTINCT " +
+            "a.CaseNumber, " +
+            "a.ApplicationDate, " +
+            "a.IdentityType, " +
+            "a.InstitutionID, " +
+            "a.ApplicationID, " +
+            "i.InstitutionName, " +
+            "ap.Status, " +
+            "ap.CurrentOrder, " +
+            "ap.ReviewDate, " +
+            "c.ClassName, " +
+            "ap.ParticipantID, " +
+            "ap.Name, " +
+            "ap.Gender, " +
+            "ap.BirthDate, " +
+            "ap.MailingAddress, " +
+            "ap.Email, " +
+            "ap.PhoneNumber, " +
+            "ap.NationalID AS ParticipantNationalID " +
+            "FROM applications a " +
+            "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
+            "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
+            "LEFT JOIN classes c ON ap.ClassID = c.ClassID " +
+            "WHERE ap.NationalID = ? ";
+
+    return jdbcTemplate.query(sql, (rs, rowNum) -> {
+      CaseEditUpdateDTO dto = new CaseEditUpdateDTO();
+
+      // 來自 applications 表
+      try { Object caseNum = rs.getObject("CaseNumber"); if (caseNum != null) dto.setCaseNumber(((Number) caseNum).intValue()); } catch (Exception ex) { }
+
+      if (rs.getDate("ApplicationDate") != null) {
+        dto.setApplyDate(rs.getDate("ApplicationDate").toLocalDate());
+      }
+
+      try { Object identityType = rs.getObject("IdentityType"); if (identityType != null) dto.setIdentityType(((Number) identityType).intValue()); } catch (Exception ex) { }
+
+      try {
+        String institutionIdStr = rs.getString("InstitutionID");
+        if (institutionIdStr != null && !institutionIdStr.isEmpty()) {
+          dto.setInstitutionId(java.util.UUID.fromString(institutionIdStr));
+        }
+      } catch (Exception ex) { }
+
+      try {
+        String appIdStr = rs.getString("ApplicationID");
+        if (appIdStr != null && !appIdStr.isEmpty()) {
+          dto.setApplicationID(java.util.UUID.fromString(appIdStr));
+        }
+      } catch (Exception ex) { }
+
+      // 來自 institutions 表
+      dto.setInstitutionName(rs.getString("InstitutionName"));
+
+      // 來自 application_participants 表
+
+      try { Object currentOrder = rs.getObject("CurrentOrder"); if (currentOrder != null) dto.setCurrentOrder(((Number) currentOrder).intValue()); } catch (Exception ex) { }
+
+      if (rs.getTimestamp("ReviewDate") != null) {
+        dto.setReviewDate(rs.getTimestamp("ReviewDate").toLocalDateTime());
+      }
+
+      // 來自 classes 表
+      dto.setSelectedClass(rs.getString("ClassName"));
+
+      // 創建並設置申請人信息 (UserSimpleDTO) - 來自 application_participants 表
+      UserSimpleDTO userDTO = new UserSimpleDTO();
+      try {
+        String participantIdStr = rs.getString("ParticipantID");
+        if (participantIdStr != null && !participantIdStr.isEmpty()) {
+          userDTO.setUserID(participantIdStr);
+        }
+      } catch (Exception ex) { }
+
+      userDTO.setName(rs.getString("Name"));
+
+      try {
+        Boolean genderVal = rs.getBoolean("Gender");
+        if (!rs.wasNull()) {
+          userDTO.setGender(genderVal ? "M" : "F");
+        }
+      } catch (Exception ex) { }
+
+      if (rs.getDate("BirthDate") != null) {
+        userDTO.setBirthDate(rs.getDate("BirthDate").toString());
+      }
+
+      userDTO.setMailingAddress(rs.getString("MailingAddress"));
+      userDTO.setEmail(rs.getString("Email"));
+      userDTO.setPhoneNumber(rs.getString("PhoneNumber"));
+      userDTO.setNationalID(rs.getString("ParticipantNationalID"));
+
+      dto.setUser(userDTO);
+
+      return dto;
+    }, nationalID);
   }
 }
 

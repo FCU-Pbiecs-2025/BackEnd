@@ -3,6 +3,7 @@ package Group4.Childcare.Controller;
 import Group4.Childcare.Model.Classes;
 import Group4.Childcare.Service.ClassesService;
 import Group4.Childcare.DTO.ClassSummaryDTO;
+import Group4.Childcare.DTO.ClassNameDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -166,5 +167,17 @@ public class ClassesController {
         response.put("hasNext", offset + size < totalElements);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 根據機構UUID查詢該機構的所有班級名稱
+     * @param institutionId 機構UUID
+     * 個案管理查詢卡片下拉是選單使用
+     * @return ResponseEntity<List<ClassNameDTO>> 班級名稱列表
+     */
+    @GetMapping("/institution/{institutionId}/names")
+    public ResponseEntity<List<ClassNameDTO>> getClassNamesByInstitution(@PathVariable UUID institutionId) {
+        List<ClassNameDTO> classNames = service.getClassNamesByInstitutionId(institutionId);
+        return ResponseEntity.ok(classNames);
     }
 }

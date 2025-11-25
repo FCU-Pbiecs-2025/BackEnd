@@ -29,8 +29,6 @@ public class CaseEditUpdateDTO {
   /** 機構名稱 (institutions.InstitutionName) */
   private String institutionName;
 
-  /** 案件狀態 (application_participants.Status) */
-  private String status;
 
   /** 選定的班級名稱 (classes.ClassName) */
   private String selectedClass;
@@ -45,7 +43,7 @@ public class CaseEditUpdateDTO {
   private UUID applicationID;
 
   /** 申請人信息 (users model) */
-  private ApplicationParticipantDTO applicant;
+  private UserSimpleDTO User;
 
   /** 家長信息陣列 */
   private List<ApplicationParticipantDTO> parents;

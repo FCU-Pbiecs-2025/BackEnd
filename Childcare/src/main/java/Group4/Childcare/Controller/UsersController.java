@@ -24,6 +24,30 @@ public class UsersController {
     return ResponseEntity.ok(usersService.createUser(user));
   }
 
+  /**
+    * GET  /users/{id}
+   * 範例資料為
+   * {
+   *     "userID": "86c23732-ce0d-4ec7-93d5-048faee27d4b",
+   *     "account": "inst001",
+   *     "password": "$2a$10$xYzHashedPasswordExample2234567890",
+   *     "accountStatus": 1,
+   *     "permissionType": 2,
+   *     "name": "王小明",
+   *     "gender": true,
+   *     "phoneNumber": "0923456789",
+   *     "mailingAddress": "台北市中正區重慶南路一段100號",
+   *     "email": "wang@institution.com",
+   *     "birthDate": "1985-03-20",
+   *     "familyInfoID": "6659e1bc-a2ea-4bd2-854f-4141ba6ad924",
+   *     "institutionID": "e09f1689-17a4-46f7-ae95-160a368147af",
+   *     "nationalID": "B234567890"
+   * }
+   * 依使用者ID取得使用者資料
+   * @param id 使用者ID
+   *@return 使用者資料
+   */
+
   @GetMapping("/{id}")
   public ResponseEntity<Users> getUserById(@PathVariable UUID id) {
     Optional<Users> user = usersService.getUserById(id);
@@ -35,6 +59,55 @@ public class UsersController {
     return usersService.getAllUsers();
   }
 
+
+  /**
+   * GET  /users/offset
+   * 範例資料:
+   * {
+   *     "offset": 0,
+   *     "size": 10,
+   *     "totalPages": 1,
+   *     "hasNext": false,
+   *     "content": [
+   *         {
+   *             "userID": "86c23732-ce0d-4ec7-93d5-048faee27d4b",
+   *             "account": "inst001",
+   *             "institutionName": "小天使托嬰中心",
+   *             "permissionType": 2,
+   *             "accountStatus": 1
+   *         },
+   *         {
+   *             "userID": "c6948f8d-de54-40ba-9bb8-18dec3880c5b",
+   *             "account": "parent002",
+   *             "institutionName": null,
+   *             "permissionType": 3,
+   *             "accountStatus": 1
+   *         },
+   *         {
+   *             "userID": "e2960508-6922-4b58-a8ce-6f9f94579b41",
+   *             "account": "admin001",
+   *             "institutionName": null,
+   *             "permissionType": 1,
+   *             "accountStatus": 1
+   *         },
+   *         {
+   *             "userID": "b8b2c453-9604-4b2e-b435-c097d141d5c2",
+   *             "account": "parent001",
+   *             "institutionName": null,
+   *             "permissionType": 3,
+   *             "accountStatus": 1
+   *         }
+   *     ],
+   *     "totalElements": 4
+   * }
+  *後台帳號管理頁面使用
+  *以 offset 分頁方式取得使用者列表
+  *
+   * @param offset 起始位置
+   * @param size   頁面大小
+   * @return 分頁使用者列表及分頁資訊
+   * permissionType=3 為一般使用者，permissionType=1 為管理員,permissionType=2 為機構人員
+  **/
   @GetMapping("/offset")
   public ResponseEntity<Map<String, Object>> getUsersByOffsetJdbc(
           @RequestParam(defaultValue = "0") int offset,
@@ -70,6 +143,30 @@ public class UsersController {
     }
   }
 
+  /**
+   * PUT /users/{id}
+   * body 範例資料:
+   * {
+   *     "userID": "86c23732-ce0d-4ec7-93d5-048faee27d4b",
+   *     "account": "inst001",
+   *     "password": "$2a$10$xYzHashedPasswordExample2234567890",
+   *     "accountStatus": 1,
+   *     "permissionType": 1,
+   *     "name": "王小明",
+   *     "gender": true,
+   *     "phoneNumber": "0923456789",
+   *     "mailingAddress": "台北市中正區重慶南路一段100號",
+   *     "email": "wang@institution.com",
+   *     "birthDate": "1985-03-20",
+   *     "familyInfoID": "6659e1bc-a2ea-4bd2-854f-4141ba6ad924",
+   *     "institutionID": "e09f1689-17a4-46f7-ae95-160a368147af",
+   *     "nationalID": "B234567890"
+   * }
+   * 更新使用者資料
+   * @param id 使用者ID
+   * @param user 使用者資料
+   * @return 更新後的使用者資料
+   */
   @PutMapping("/{id}")
   public ResponseEntity<Users> updateUser(@PathVariable UUID id, @RequestBody Users user) {
     return ResponseEntity.ok(usersService.updateUser(id, user));

@@ -5,6 +5,7 @@ import Group4.Childcare.DTO.ApplicationSummaryDTO;
 import Group4.Childcare.Repository.ApplicationsRepository;
 import Group4.Childcare.Repository.ApplicationsJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,8 @@ public class ApplicationsService {
   private ApplicationParticipantsRepository applicationParticipantsRepository;
   @Autowired
   private ApplicationsJdbcRepository applicationsJdbcRepository;
+  @Autowired
+  private JdbcTemplate jdbcTemplate;
   @Autowired
   private Group4.Childcare.Service.FileService fileService;
 
@@ -165,5 +168,38 @@ public class ApplicationsService {
                                                     applicantNationalId, caseNumber, identityType);
   }
 
-}
+  /**
+   * 根據幼兒身分證字號查詢案件並自動讀取檔案列表
+   * @param childrenNationalID 幼兒身分證字號
+   * @return CaseEditUpdateDTO（包含檔案列表和參與者信息）或 Optional.empty()
+   */
+  public Optional<CaseEditUpdateDTO> getCaseByChildrenNationalId(String childrenNationalID) {
+    // 查詢是否存在這個身分證字號對應的案件
+    List<CaseEditUpdateDTO> results = applicationsJdbcRepository.findByNationalID(childrenNationalID);
 
+    if (results.isEmpty()) {
+      return Optional.empty();
+    }
+
+    // 取第一個找到的案件記錄
+    CaseEditUpdateDTO result = results.getFirst();
+
+    // 自動讀取檔案列表
+    if (result.getApplicationID() != null) {
+      List<String> files = fileService.getFilesByApplicationId(result.getApplicationID());
+      result.setFiles(files);
+    }
+
+    // 查詢該案件的所有參與者（家長和幼兒）
+    Optional<ApplicationCaseDTO> caseDto = applicationsJdbcRepository.findApplicationCaseById(result.getApplicationID(), childrenNationalID);
+    if (caseDto.isPresent()) {
+      ApplicationCaseDTO applicationCase = caseDto.get();
+      result.setParents(applicationCase.parents);
+      result.setChildren(applicationCase.children);
+      // User 信息已經在 findByNationalID 中正確設置，無需覆蓋
+    }
+
+    return Optional.of(result);
+  }
+
+}

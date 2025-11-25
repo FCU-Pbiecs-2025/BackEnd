@@ -2,6 +2,7 @@ package Group4.Childcare.Controller;
 
 import Group4.Childcare.Model.Institutions;
 import Group4.Childcare.DTO.InstitutionSummaryDTO;
+import Group4.Childcare.DTO.InstitutionSimpleDTO;
 import Group4.Childcare.Service.InstitutionsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -40,5 +41,15 @@ public class InstitutionsController {
     @GetMapping("/summary")
     public ResponseEntity<List<InstitutionSummaryDTO>> getSummary() {
         return ResponseEntity.ok(service.getSummaryAll());
+    }
+
+    /**
+     * 取得所有機構的 ID 和 name
+     * 使用在個案查詢機構下拉選單
+     * @return ResponseEntity<List<InstitutionSimpleDTO>>
+     */
+    @GetMapping("/simple/all")
+    public ResponseEntity<List<InstitutionSimpleDTO>> getAllSimple() {
+        return ResponseEntity.ok(service.getAllSimple());
     }
 }
