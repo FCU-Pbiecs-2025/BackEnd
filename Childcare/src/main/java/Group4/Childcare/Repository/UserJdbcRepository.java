@@ -77,48 +77,71 @@ public class UserJdbcRepository {
         }
     };
 
-    // Save method
+    // Save method (Insert or Update)
     public Users save(Users user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+
+        // 驗證必要欄位 (僅 account 和 password 為必填)
+        if (user.getAccount() == null || user.getAccount().trim().isEmpty()) {
+            throw new IllegalArgumentException("Account is required");
+        }
+        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+        // Name 和 NationalID 可為 null，無需驗證
+
         // If user has no FamilyInfoID, create a new FamilyInfo row and set it
         if (user.getFamilyInfoID() == null) {
+            System.out.println("Creating new FamilyInfo for user: " + user.getAccount());
             Group4.Childcare.Model.FamilyInfo newFamily = new Group4.Childcare.Model.FamilyInfo();
             Group4.Childcare.Model.FamilyInfo saved = familyInfoJdbcRepository.save(newFamily);
             user.setFamilyInfoID(saved.getFamilyInfoID());
+            System.out.println("FamilyInfo created with ID: " + saved.getFamilyInfoID());
         }
 
         if (user.getUserID() == null) {
+            System.out.println("UserID is null, generating UUID and calling insert...");
             user.setUserID(UUID.randomUUID());
+            System.out.println("Generated UserID: " + user.getUserID());
             return insert(user);
         } else {
+            System.out.println("UserID already exists: " + user.getUserID() + ", calling update...");
             return update(user);
         }
     }
 
     // Insert method
-    private Users  insert(Users user) {
+    private Users insert(Users user) {
         String sql = "INSERT INTO " + TABLE_NAME +
                     " (UserID, Account, Password, AccountStatus, PermissionType, Name, Gender, " +
                     "PhoneNumber, MailingAddress, Email, BirthDate, FamilyInfoID, InstitutionID, NationalID) " +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        jdbcTemplate.update(sql,
-            user.getUserID().toString(),
-            user.getAccount(),
-            user.getPassword(),
-            user.getAccountStatus(),
-            user.getPermissionType(),
-            user.getName(),
-            user.getGender(),
-            user.getPhoneNumber(),
-            user.getMailingAddress(),
-            user.getEmail(),
-            user.getBirthDate() != null ? Date.valueOf(user.getBirthDate()) : null,
-            user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null,
-            user.getInstitutionID() != null ? user.getInstitutionID().toString() : null,
-            user.getNationalID()
-        );
-
-        return user;
+        try {
+            jdbcTemplate.update(sql,
+                user.getUserID().toString(),
+                user.getAccount(),
+                user.getPassword(),
+                user.getAccountStatus() != null ? user.getAccountStatus() : 1,
+                user.getPermissionType() != null ? user.getPermissionType() : 1,
+                user.getName(),
+                user.getGender() != null ? user.getGender() : false,
+                user.getPhoneNumber(),
+                user.getMailingAddress(),
+                user.getEmail(),
+                user.getBirthDate() != null ? Date.valueOf(user.getBirthDate()) : null,
+                user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null,
+                user.getInstitutionID() != null ? user.getInstitutionID().toString() : null,
+                user.getNationalID()
+            );
+            System.out.println("User inserted successfully with ID: " + user.getUserID());
+            return user;
+        } catch (Exception e) {
+            System.err.println("Error inserting user: " + e.getMessage());
+            throw new RuntimeException("Failed to insert user", e);
+        }
     }
 
     // Update method
@@ -128,24 +151,34 @@ public class UserJdbcRepository {
                     "Gender = ?, PhoneNumber = ?, MailingAddress = ?, Email = ?, BirthDate = ?, " +
                     "FamilyInfoID = ?, InstitutionID = ?, NationalID = ? WHERE UserID = ?";
 
-        jdbcTemplate.update(sql,
-            user.getAccount(),
-            user.getPassword(),
-            user.getAccountStatus(),
-            user.getPermissionType(),
-            user.getName(),
-            user.getGender(),
-            user.getPhoneNumber(),
-            user.getMailingAddress(),
-            user.getEmail(),
-            user.getBirthDate() != null ? Date.valueOf(user.getBirthDate()) : null,
-            user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null,
-            user.getInstitutionID() != null ? user.getInstitutionID().toString() : null,
-            user.getNationalID(),
-            user.getUserID().toString()
-        );
+        try {
+            int rowsUpdated = jdbcTemplate.update(sql,
+                user.getAccount(),
+                user.getPassword(),
+                user.getAccountStatus() != null ? user.getAccountStatus() : 1,
+                user.getPermissionType() != null ? user.getPermissionType() : 1,
+                user.getName(),
+                user.getGender() != null ? user.getGender() : false,
+                user.getPhoneNumber(),
+                user.getMailingAddress(),
+                user.getEmail(),
+                user.getBirthDate() != null ? Date.valueOf(user.getBirthDate()) : null,
+                user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null,
+                user.getInstitutionID() != null ? user.getInstitutionID().toString() : null,
+                user.getNationalID(),
+                user.getUserID().toString()
+            );
 
-        return user;
+            if (rowsUpdated > 0) {
+                System.out.println("User updated successfully with ID: " + user.getUserID());
+            } else {
+                System.err.println("No user found to update with ID: " + user.getUserID());
+            }
+            return user;
+        } catch (Exception e) {
+            System.err.println("Error updating user: " + e.getMessage());
+            throw new RuntimeException("Failed to update user", e);
+        }
     }
 
     // Find by ID

@@ -79,16 +79,25 @@ public class UsersService {
 
   /**
    * 使用 UserJdbcRepository 的 save 方法（支援 insert 或 update）
-   * @param user Users 實體
+   * 若 userID 為 null 則自動產生 UUID
+   * 若 familyInfoID 為 null 則自動建立新的 FamilyInfo
+   * @param user Users 實體（必須包含 account、password；name 和 nationalID 可為 null）
    * @return 儲存後的 Users
+   * @throws RuntimeException 若保存失敗
    */
   public Users saveUsingJdbc(Users user) {
+    if (user == null) {
+      throw new IllegalArgumentException("User cannot be null");
+    }
+
     try {
-      return jdbcRepository.save(user);
+      Users saved = jdbcRepository.save(user);
+      System.out.println("User saved successfully: " + saved.getUserID());
+      return saved;
     } catch (Exception e) {
       System.err.println("Error in saveUsingJdbc: " + e.getMessage());
       e.printStackTrace();
-      throw new RuntimeException("Failed to save user via JDBC", e);
+      throw new RuntimeException("Failed to save user via JDBC: " + e.getMessage(), e);
     }
   }
 }

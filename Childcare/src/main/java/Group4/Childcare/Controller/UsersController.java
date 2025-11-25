@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/users")
@@ -171,19 +172,89 @@ public class UsersController {
   public ResponseEntity<Users> updateUser(@PathVariable UUID id, @RequestBody Users user) {
     return ResponseEntity.ok(usersService.updateUser(id, user));
   }
-
+  /**
+   * POST /users/new-member
+   * 註冊新使用者
+   * body 範例資料:
+   * {
+   *"account": "inst001",
+   *"password": "$2a$10$xYzHashedPasswordExample2234567890",
+   *"accountStatus": 1,
+   *"permissionType": 1,
+   *"name": "王小明",
+   *"gender": true,
+   *"phoneNumber": "0923456789",
+   *"mailingAddress": "台北市中正區重慶南路一段100號",
+   *"email": "wang@institution.com",
+   *"birthDate": "1985-03-20",
+   *"familyInfoID": "6659e1bc-a2ea-4bd2-854f-4141ba6ad924",
+   *"institutionID": "e09f1689-17a4-46f7-ae95-160a368147af",
+   *"nationalID": "B234567890"
+   }
+   *     @param user 使用者資料
+   *     @return 註冊結果
+   */
   @PostMapping("/new-member")
   public ResponseEntity<Map<String, Object>> createOrUpdateUserJdbc(@RequestBody Users user) {
     Map<String, Object> result = new HashMap<>();
     try {
+      // 驗證 request body 是否為空
+      if (user == null) {
+        result.put("success", false);
+        result.put("code", 400);
+        result.put("error", "Request body is empty");
+        return ResponseEntity.badRequest().body(result);
+      }
+
+      // 必要欄位驗證（僅 account 和 password 為必填）
+      List<String> missingFields = new ArrayList<>();
+      if (user.getAccount() == null || user.getAccount().trim().isEmpty()) {
+        missingFields.add("account");
+      }
+      if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+        missingFields.add("password");
+      }
+
+      if (!missingFields.isEmpty()) {
+        result.put("success", false);
+        result.put("code", 400);
+        result.put("error", "Missing required fields");
+        result.put("missingFields", missingFields);
+        return ResponseEntity.badRequest().body(result);
+      }
+
+      // 清理基本字串欄位（trim）
+      user.setAccount(user.getAccount().trim());
+      user.setPassword(user.getPassword().trim());
+
+      if (user.getName() != null) {
+        user.setName(user.getName().trim());
+      }
+      if (user.getNationalID() != null) {
+        user.setNationalID(user.getNationalID().trim());
+      }
+      if (user.getMailingAddress() != null) {
+        user.setMailingAddress(user.getMailingAddress().trim());
+      }
+      if (user.getEmail() != null) {
+        user.setEmail(user.getEmail().trim());
+      }
+      if (user.getPhoneNumber() != null) {
+        user.setPhoneNumber(user.getPhoneNumber().trim());
+      }
+
       // 設定預設值
       if (user.getAccountStatus() == null) {
         user.setAccountStatus((byte) 1);
       }
       if (user.getPermissionType() == null) {
-        user.setPermissionType((byte) 3);
+        user.setPermissionType((byte) 1);
       }
+
+      // 注意：userID 不在此設置，讓 Repository 層在 insert 時自動生成
+
       Users saved = usersService.saveUsingJdbc(user);
+
       result.put("success", true);
       result.put("code", 200);
       result.put("message", "註冊成功");
@@ -193,10 +264,10 @@ public class UsersController {
       System.err.println("Error in createOrUpdateUserJdbc: " + e.getMessage());
       e.printStackTrace();
       result.put("success", false);
-      result.put("code", 400);
-      result.put("error", "Failed to create user");
+      result.put("code", 500);
+      result.put("error", "Failed to create/update user");
       result.put("message", e.getMessage());
-      return ResponseEntity.status(400).body(result);
+      return ResponseEntity.status(500).body(result);
     }
   }
 
