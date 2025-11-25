@@ -35,6 +35,13 @@ public class AuthService {
             return result;
         }
 
+        // 檢查帳號狀態，AccountStatus: 1=啟用, 2=停用
+        if (user.getAccountStatus() == null || user.getAccountStatus() != 1) {
+            result.put("success", false);
+            result.put("message", "帳號未啟用或已被停用");
+            return result;
+        }
+
         if (!passwordEncoder.matches(password, user.getPassword())) {
             result.put("success", false);
             result.put("message", "密碼錯誤");

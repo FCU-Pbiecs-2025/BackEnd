@@ -55,10 +55,10 @@ public class SimpleLoginController {
             return ResponseEntity.badRequest().body(result);
         }
 
-        // 檢查帳號狀態（假設 1 為啟用，0 為停用）
-        if (user.getAccountStatus() != 1) {
+        // 檢查帳號狀態，AccountStatus: 1=啟用, 2=停用
+        if (user.getAccountStatus() == null || user.getAccountStatus() != 1) {
             result.put("success", false);
-            result.put("message", "帳號已停用");
+            result.put("message", "帳號未啟用或已被停用");
             return ResponseEntity.badRequest().body(result);
         }
 
