@@ -7,14 +7,17 @@ import Group4.Childcare.DTO.RevokeApplicationDTO;
 import Group4.Childcare.DTO.RevokeSearchRequest;
 import Group4.Childcare.DTO.RevokeDetailResponse;
 import Group4.Childcare.DTO.ApplicationParticipantDTO;
+import Group4.Childcare.DTO.UpdateConfirmDateRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -121,6 +124,26 @@ public class RevokeController {
             return ResponseEntity.ok(resp);
         } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
             return ResponseEntity.status(404).body(Map.of("error", "找不到對應資料"));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    // PUT: 更新撤銷聲請的確認日期
+    @PutMapping("/confirm-date")
+    public ResponseEntity<Object> updateConfirmDate(@RequestBody UpdateConfirmDateRequest req) {
+        String cancellationID = req != null ? req.getCancellationID() : null;
+        LocalDate confirmDate = req != null ? req.getConfirmDate() : null;
+        if (cancellationID == null || cancellationID.isEmpty() || confirmDate == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "cancellationID 與 confirmDate 為必填"));
+        }
+        try {
+            int updated = revokeService.updateConfirmDate(cancellationID, confirmDate);
+            if (updated > 0) {
+                return ResponseEntity.ok(Map.of("success", true, "updated", updated));
+            } else {
+                return ResponseEntity.status(404).body(Map.of("error", "找不到對應資料"));
+            }
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(Map.of("error", ex.getMessage()));
         }

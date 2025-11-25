@@ -7,6 +7,7 @@ import Group4.Childcare.Repository.RevokesJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.time.LocalDate;
 
 @Service
 public class RevokeService {
@@ -44,5 +45,10 @@ public class RevokeService {
     // 取得 applications 與 application_participants 的詳細資料
     public ApplicationParticipantDTO getApplicationDetailByCancellationAndNationalID(String cancellationID, String nationalID) {
         return revokesJdbcRepository.getApplicationDetailByCancellationAndNationalID(cancellationID, nationalID);
+    }
+
+    // 新增：更新撤銷聲請的確認日期
+    public int updateConfirmDate(String cancellationID, LocalDate confirmDate) {
+        return revokesJdbcRepository.updateConfirmDate(cancellationID, confirmDate);
     }
 }

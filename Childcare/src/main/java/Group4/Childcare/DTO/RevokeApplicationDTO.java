@@ -4,33 +4,32 @@ import java.util.UUID;
 import java.time.LocalDateTime;
 
 public class RevokeApplicationDTO {
-    private UUID applicationID;
-    private LocalDateTime revokeTime;
+    private UUID cancellationID;
+    private LocalDateTime cancellationDate;
     private UUID userID;
     private String userName;
     private UUID institutionID;
     private String institutionName;
-    private String status;
+    private String abandonReason;
     private String nationalID;
 
-    public RevokeApplicationDTO(UUID applicationID, LocalDateTime revokeTime, UUID userID, String userName, UUID institutionID, String institutionName, String status, String nationalID ) {
-        this.applicationID = applicationID;
-        this.revokeTime = revokeTime;
+    public RevokeApplicationDTO(UUID cancellationID, LocalDateTime cancellationDate, UUID userID, String userName, UUID institutionID, String institutionName, String abandonReason, String nationalID) {
+        this.cancellationID = cancellationID;
+        this.cancellationDate = cancellationDate;
         this.userID = userID;
         this.userName = userName;
         this.institutionID = institutionID;
         this.institutionName = institutionName;
-        this.status = status;
+        this.abandonReason = abandonReason;
         this.nationalID = nationalID;
     }
 
-    public UUID getApplicationID() { return applicationID; }
-    public LocalDateTime getRevokeTime() { return revokeTime; }
+    public UUID getCancellationID() { return cancellationID; }
+    public LocalDateTime getCancellationDate() { return cancellationDate; }
     public UUID getUserID() { return userID; }
     public String getUserName() { return userName; }
     public UUID getInstitutionID() { return institutionID; }
     public String getInstitutionName() { return institutionName; }
-    public String getStatus() { return status; }
+    public String getAbandonReason() { return abandonReason; }
     public String getNationalID() { return nationalID; }
 }
-

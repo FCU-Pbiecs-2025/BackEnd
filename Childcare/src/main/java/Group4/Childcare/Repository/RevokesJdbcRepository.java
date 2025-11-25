@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 @Repository
 public class RevokesJdbcRepository {
@@ -62,8 +63,7 @@ public class RevokesJdbcRepository {
             "FROM [dbo].[cancellation] c " +
             "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
             "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
-            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
-            "JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] ");
+            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " );
         boolean hasWhere = false;
         if (cancellationID != null && !cancellationID.isEmpty()) {
             sql.append("WHERE c.[CancellationID] = ? ");
@@ -71,7 +71,7 @@ public class RevokesJdbcRepository {
         }
         if (nationalID != null && !nationalID.isEmpty()) {
             sql.append(hasWhere ? "AND " : "WHERE ");
-            sql.append("ap.[NationalID] = ? ");
+            sql.append("c.[NationalID] = ? ");
         }
         sql.append("ORDER BY c.[CancellationDate] DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
         // 準備參數
@@ -101,8 +101,7 @@ public class RevokesJdbcRepository {
             "SELECT COUNT(*) FROM [dbo].[cancellation] c " +
             "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
             "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
-            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
-            "JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] ");
+            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " );
         boolean hasWhere = false;
         if (cancellationID != null && !cancellationID.isEmpty()) {
             sql.append("WHERE c.[CancellationID] = ? ");
@@ -110,7 +109,7 @@ public class RevokesJdbcRepository {
         }
         if (nationalID != null && !nationalID.isEmpty()) {
             sql.append(hasWhere ? "AND " : "WHERE ");
-            sql.append("ap.[NationalID] = ? ");
+            sql.append("c.[NationalID] = ? ");
         }
         java.util.List<Object> params = new java.util.ArrayList<>();
         if (cancellationID != null && !cancellationID.isEmpty()) params.add(cancellationID);
@@ -138,7 +137,7 @@ public class RevokesJdbcRepository {
 
     // 新增：透過 cancellation LEFT JOIN application_participants 取得 participantType == 1 的家長資料
     public List<ApplicationParticipantDTO> getParentsByCancellation(String cancellationID) {
-        String sql = "SELECT ap.[NationalID], ap.[Name], ap.[Gender], ap.[RelationShip], ap.[Occupation], ap.[PhoneNumber], ap.[HouseholdAddress], ap.[MailingAddress], ap.[Email], ap.[BirthDate], ap.[IsSuspended], ap.[SuspendEnd] FROM [dbo].[cancellation] c LEFT JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] LEFT JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] WHERE c.[CancellationID] = ? AND ap.[ParticipantType] = CAST(1 AS BIT)";
+        String sql = "SELECT ap.[NationalID], ap.[Name], ap.[Gender], ap.[RelationShip], ap.[Occupation], ap.[PhoneNumber], ap.[HouseholdAddress], ap.[MailingAddress], ap.[Email], ap.[BirthDate], ap.[IsSuspended], ap.[SuspendEnd] FROM [dbo].[cancellation] c LEFT JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] LEFT JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] WHERE c.[CancellationID] = ? AND ap.[ParticipantType] = 1";
         return jdbcTemplate.query(sql, new Object[]{cancellationID}, (rs, rowNum) -> {
             ApplicationParticipantDTO dto = new ApplicationParticipantDTO();
             dto.participantType = "1"; // or map as needed
@@ -178,5 +177,11 @@ public class RevokesJdbcRepository {
             dto.suspendEnd = rs.getString("SuspendEnd");
             return dto;
         });
+    }
+
+    // 新增：更新撤銷聲請的確認日期
+    public int updateConfirmDate(String cancellationID, LocalDate confirmDate) {
+        String sql = "UPDATE [dbo].[cancellation] SET [ConfirmDate] = ? WHERE [CancellationID] = ?";
+        return jdbcTemplate.update(sql, confirmDate, cancellationID);
     }
 }
