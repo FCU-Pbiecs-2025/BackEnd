@@ -7,6 +7,7 @@ import Group4.Childcare.DTO.ApplicationParticipantDTO;
 import Group4.Childcare.DTO.CaseOffsetListDTO;
 import Group4.Childcare.DTO.CaseEditUpdateDTO;
 import Group4.Childcare.DTO.UserSimpleDTO;
+import Group4.Childcare.DTO.UserApplicationDetailsDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -622,6 +623,42 @@ public class ApplicationsJdbcRepository {
 
       return dto;
     }, nationalID);
+  }
+
+  /**
+   * 根據 UserID 查詢使用者申請詳細資料
+   * 包含 applications、application_participants、cancellation、user 表的聯合查詢
+   * @param userID 使用者ID
+   * @return 包含申請詳細資料的清單
+   */
+  public List<UserApplicationDetailsDTO> findUserApplicationDetails(UUID userID) {
+    String sql = "SELECT " +
+        "a.ApplicationID, " +
+        "a.ApplicationDate, " +
+        "a.InstitutionID, " +
+        "ap.Name as childname, " +
+        "ap.BirthDate, " +
+        "ap.Status, " +
+        "u.Name as username " +
+        "FROM applications a " +
+        "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
+        "LEFT JOIN users u ON a.UserID = u.UserID " +
+        "WHERE a.UserID = ?  and ap.ParticipantType=0" +
+        "ORDER BY a.ApplicationDate DESC";
+
+    return jdbcTemplate.query(sql, (rs, rowNum) -> {
+      UserApplicationDetailsDTO dto = new UserApplicationDetailsDTO();
+      dto.setApplicationID(UUID.fromString(rs.getString("ApplicationID")));
+      dto.setApplicationDate(rs.getDate("ApplicationDate").toLocalDate());
+      dto.setInstitutionID(UUID.fromString(rs.getString("InstitutionID")));
+      dto.setChildname(rs.getString("childname"));
+      if (rs.getDate("BirthDate") != null) {
+        dto.setBirthDate(rs.getDate("BirthDate").toLocalDate());
+      }
+      dto.setStatus(rs.getString("Status"));
+      dto.setUsername(rs.getString("username"));
+      return dto;
+    }, userID.toString());
   }
 }
 

@@ -63,9 +63,14 @@ public class SimpleLoginController {
         }
 
         // 登入成功
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("UserID", user.getUserID());
+        userInfo.put("PermissionType", user.getPermissionType());
+        userInfo.put("Name", user.getName());
+
         result.put("success", true);
         result.put("message", "登入成功");
-        result.put("user", user);
+        result.put("user", userInfo);
 
         return ResponseEntity.ok(result);
     }

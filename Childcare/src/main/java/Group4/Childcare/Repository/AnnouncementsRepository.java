@@ -9,6 +9,6 @@ import java.util.UUID;
 
 public interface AnnouncementsRepository extends JpaRepository<Announcements, UUID> {
 
-    @Query("SELECT new Group4.Childcare.DTO.AnnouncementSummaryDTO(a.announcementID,a.title, a.content, a.startDate) FROM Announcements a")
+    @Query("SELECT new Group4.Childcare.DTO.AnnouncementSummaryDTO(a.announcementID,a.title, a.content, a.startDate) FROM Announcements a order by StartDate desc ")
     List<AnnouncementSummaryDTO> findSummaryData();
 }

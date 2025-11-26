@@ -5,7 +5,6 @@ import Group4.Childcare.DTO.ApplicationSummaryDTO;
 import Group4.Childcare.Repository.ApplicationsRepository;
 import Group4.Childcare.Repository.ApplicationsJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +18,9 @@ import java.time.LocalDate;
 import Group4.Childcare.DTO.ApplicationSummaryWithDetailsDTO;
 import Group4.Childcare.DTO.ApplicationCaseDTO;
 import Group4.Childcare.DTO.CaseOffsetListDTO;
+import Group4.Childcare.DTO.CaseOffsetListDTO;
 import Group4.Childcare.DTO.CaseEditUpdateDTO;
+import Group4.Childcare.DTO.UserApplicationDetailsDTO;
 
 @Service
 public class ApplicationsService {
@@ -29,8 +30,6 @@ public class ApplicationsService {
   private ApplicationParticipantsRepository applicationParticipantsRepository;
   @Autowired
   private ApplicationsJdbcRepository applicationsJdbcRepository;
-  @Autowired
-  private JdbcTemplate jdbcTemplate;
   @Autowired
   private Group4.Childcare.Service.FileService fileService;
 
@@ -200,6 +199,16 @@ public class ApplicationsService {
     }
 
     return Optional.of(result);
+  }
+
+  /**
+   * 根據 UserID 查詢使用者申請詳細資料
+   * 包含 applications、application_participants、cancellation、user 表的聯合查詢
+   * @param userID 使用者ID
+   * @return 包含申請詳細資料的清單
+   */
+  public List<UserApplicationDetailsDTO> getUserApplicationDetails(UUID userID) {
+    return applicationsJdbcRepository.findUserApplicationDetails(userID);
   }
 
 }

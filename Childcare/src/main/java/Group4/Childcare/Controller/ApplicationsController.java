@@ -7,6 +7,7 @@ import Group4.Childcare.DTO.ApplicationCaseDTO;
 import Group4.Childcare.DTO.AdminCaseSearchRequestDto;
 import Group4.Childcare.DTO.CaseOffsetListDTO;
 import Group4.Childcare.DTO.CaseEditUpdateDTO;
+import Group4.Childcare.DTO.UserApplicationDetailsDTO;
 import Group4.Childcare.Service.ApplicationsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -475,6 +476,27 @@ public class ApplicationsController {
     );
 
     return ResponseEntity.ok(response);
+  }
+
+  /**
+   * 根據 UserID 取得使用者申請詳細資料
+   * 使用 JDBC 查詢 applications、application_participants、cancellation、users 表
+   *
+   * @param userID 使用者ID
+   * @return 包含申請詳細資料的清單
+   */
+  @GetMapping("/user/{userID}/details")
+  public ResponseEntity<List<UserApplicationDetailsDTO>> getUserApplicationDetails(@PathVariable UUID userID) {
+    if (userID == null) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    try {
+      List<UserApplicationDetailsDTO> result = service.getUserApplicationDetails(userID);
+      return ResponseEntity.ok(result);
+    } catch (Exception e) {
+      return ResponseEntity.status(500).build();
+    }
   }
 
 
