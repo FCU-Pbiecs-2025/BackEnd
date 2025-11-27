@@ -37,6 +37,15 @@ public class Applications {
     @Column(name = "AttachmentPath", columnDefinition = "NVARCHAR(MAX)")
     private String attachmentPath;
 
+    @Column(name = "AttachmentPath1", columnDefinition = "NVARCHAR(MAX)")
+    private String attachmentPath1;
+
+    @Column(name = "AttachmentPath2", columnDefinition = "NVARCHAR(MAX)")
+    private String attachmentPath2;
+
+    @Column(name = "AttachmentPath3", columnDefinition = "NVARCHAR(MAX)")
+    private String attachmentPath3;
+
     @OneToMany(mappedBy = "applications")
     private List<ApplicationParticipants> applicationParticipants;
 }

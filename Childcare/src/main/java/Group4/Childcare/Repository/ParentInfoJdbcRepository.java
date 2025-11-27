@@ -160,4 +160,10 @@ public class ParentInfoJdbcRepository {
         Long count = jdbcTemplate.queryForObject(sql, Long.class);
         return count != null ? count : 0;
     }
+
+    // Find by FamilyInfoID
+    public List<ParentInfo> findByFamilyInfoID(UUID familyInfoID) {
+        String sql = "SELECT * FROM " + TABLE_NAME + " WHERE FamilyInfoID = ?";
+        return jdbcTemplate.query(sql, PARENT_INFO_ROW_MAPPER, familyInfoID.toString());
+    }
 }

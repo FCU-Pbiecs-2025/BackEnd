@@ -134,4 +134,10 @@ public class ChildInfoJdbcRepository {
         Long count = jdbcTemplate.queryForObject(sql, Long.class);
         return count != null ? count : 0;
     }
+
+    // Find by FamilyInfoID
+    public List<ChildInfo> findByFamilyInfoID(UUID familyInfoID) {
+        String sql = "SELECT * FROM " + TABLE_NAME + " WHERE FamilyInfoID = ?";
+        return jdbcTemplate.query(sql, CHILD_INFO_ROW_MAPPER, familyInfoID.toString());
+    }
 }

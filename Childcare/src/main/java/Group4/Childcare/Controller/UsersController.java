@@ -3,6 +3,9 @@ package Group4.Childcare.Controller;
 import Group4.Childcare.Model.Users;
 import Group4.Childcare.Service.UsersService;
 import Group4.Childcare.DTO.UserSummaryDTO;
+import Group4.Childcare.DTO.UserFamilyInfoDTO;
+import Group4.Childcare.Service.ChildInfoService;
+import Group4.Childcare.Service.ParentInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +22,12 @@ import java.util.ArrayList;
 public class UsersController {
   @Autowired
   private UsersService usersService;
+
+  @Autowired
+  private ChildInfoService childInfoService;
+
+  @Autowired
+  private ParentInfoService parentInfoService;
 
   @PostMapping
   public ResponseEntity<Users> createUser(@RequestBody Users user) {
@@ -269,6 +278,64 @@ public class UsersController {
       result.put("message", e.getMessage());
       return ResponseEntity.status(500).body(result);
     }
+  }
+
+  /**
+   * GET /users-familyIfo/{userID}
+   * 根據使用者 ID 取得使用者資料、家庭資訊、父母資訊和子女資訊
+   *
+   * 範例資料:
+   * {
+   *     "userID": "86c23732-ce0d-4ec7-93d5-048faee27d4b",
+   *     "accountStatus": 1,
+   *     "permissionType": 3,
+   *     "name": "王小明",
+   *     "gender": true,
+   *     "phoneNumber": "0923456789",
+   *     "mailingAddress": "台北市中正區重慶南路一段100號",
+   *     "email": "wang@institution.com",
+   *     "birthDate": "1985-03-20",
+   *     "familyInfoID": "6659e1bc-a2ea-4bd2-854f-4141ba6ad924",
+   *     "institutionID": "e09f1689-17a4-46f7-ae95-160a368147af",
+   *     "nationalID": "B234567890",
+   *     "Parents": [...],
+   *     "Children": [...]
+   * }
+   *
+   * @param userID 使用者 ID
+   * @return UserFamilyInfoDTO 包含使用者資料及其家庭成員資訊
+   */
+  @GetMapping("/users-familyInfo/{userID}")
+  public ResponseEntity<UserFamilyInfoDTO> getUserFamilyInfo(@PathVariable UUID userID) {
+    Optional<Users> userOpt = usersService.getUserById(userID);
+    if (userOpt.isEmpty()) {
+      return ResponseEntity.notFound().build();
+    }
+
+    Users user = userOpt.get();
+    UserFamilyInfoDTO dto = new UserFamilyInfoDTO();
+
+    // 映射用戶基本資訊
+    dto.setUserID(user.getUserID());
+    dto.setAccountStatus(user.getAccountStatus());
+    dto.setPermissionType(user.getPermissionType());
+    dto.setName(user.getName());
+    dto.setGender(user.getGender());
+    dto.setPhoneNumber(user.getPhoneNumber());
+    dto.setMailingAddress(user.getMailingAddress());
+    dto.setEmail(user.getEmail());
+    dto.setBirthDate(user.getBirthDate());
+    dto.setFamilyInfoID(user.getFamilyInfoID());
+    dto.setInstitutionID(user.getInstitutionID());
+    dto.setNationalID(user.getNationalID());
+
+    // 根據 familyInfoID 查找父母和子女資訊
+    if (user.getFamilyInfoID() != null) {
+      dto.setParents(parentInfoService.getByFamilyInfoID(user.getFamilyInfoID()));
+      dto.setChildren(childInfoService.getByFamilyInfoID(user.getFamilyInfoID()));
+    }
+
+    return ResponseEntity.ok(dto);
   }
 
 }
