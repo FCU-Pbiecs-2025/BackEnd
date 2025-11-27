@@ -8,6 +8,7 @@ import Group4.Childcare.DTO.RevokeSearchRequest;
 import Group4.Childcare.DTO.RevokeDetailResponse;
 import Group4.Childcare.DTO.ApplicationParticipantDTO;
 import Group4.Childcare.DTO.UpdateConfirmDateRequest;
+import Group4.Childcare.DTO.CreateRevokeRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -144,6 +145,27 @@ public class RevokeController {
             } else {
                 return ResponseEntity.status(404).body(Map.of("error", "找不到對應資料"));
             }
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    // 新增 POST API：建立一筆 cancellation 紀錄
+    @PostMapping("/create")
+    public ResponseEntity<Object> createCancellation(@RequestBody CreateRevokeRequest req) {
+        if (req == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Request body required"));
+        }
+        String nationalID = req.getNationalID() != null ? req.getNationalID().trim() : null;
+        String abandonReason = req.getAbandonReason() != null ? req.getAbandonReason().trim() : null;
+        String applicationID = req.getApplicationID() != null ? req.getApplicationID().trim() : null;
+        if (nationalID == null || nationalID.isEmpty() || abandonReason == null || abandonReason.isEmpty() || applicationID == null || applicationID.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "nationalID, abandonReason, applicationID 為必填"));
+        }
+        try {
+            revokeService.createCancellation(applicationID, abandonReason, nationalID);
+            LocalDate cancellationDate = LocalDate.now();
+            return ResponseEntity.ok(Map.of("success", true, "cancellationDate", cancellationDate));
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(Map.of("error", ex.getMessage()));
         }

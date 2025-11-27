@@ -636,13 +636,20 @@ public class ApplicationsJdbcRepository {
         "a.ApplicationID, " +
         "a.ApplicationDate, " +
         "a.InstitutionID, " +
+            "i.InstitutionName, " +
         "ap.Name as childname, " +
         "ap.BirthDate, " +
         "ap.Status, " +
+            "ap.CurrentOrder, " +
+            "ap.NationalID as childNationalID, " +
+            "ap.Reason, " +
+            "c.CancellationID, " +
         "u.Name as username " +
         "FROM applications a " +
         "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
         "LEFT JOIN users u ON a.UserID = u.UserID " +
+            "LEFT JOIN cancellation c ON  c.ApplicationID = a.ApplicationID " +
+            "LEFT JOIN  institutions i ON  i.InstitutionID = a.InstitutionID " +
         "WHERE a.UserID = ?  and ap.ParticipantType=0" +
         "ORDER BY a.ApplicationDate DESC";
 
@@ -651,11 +658,16 @@ public class ApplicationsJdbcRepository {
       dto.setApplicationID(UUID.fromString(rs.getString("ApplicationID")));
       dto.setApplicationDate(rs.getDate("ApplicationDate").toLocalDate());
       dto.setInstitutionID(UUID.fromString(rs.getString("InstitutionID")));
+      dto.setInstitutionName(rs.getString("InstitutionName"));
       dto.setChildname(rs.getString("childname"));
       if (rs.getDate("BirthDate") != null) {
         dto.setBirthDate(rs.getDate("BirthDate").toLocalDate());
       }
       dto.setStatus(rs.getString("Status"));
+      dto.setCurrentOrder(rs.getInt("CurrentOrder"));
+      dto.setChildNationalID(rs.getString("childNationalID"));
+      dto.setReason(rs.getString("Reason"));
+      dto.setCancellationID(rs.getString("CancellationID") != null ? UUID.fromString(rs.getString("CancellationID")) : null);
       dto.setUsername(rs.getString("username"));
       return dto;
     }, userID.toString());
