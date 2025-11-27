@@ -5,6 +5,7 @@ import Group4.Childcare.DTO.ApplicationParticipantDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.time.LocalDate;
@@ -183,5 +184,24 @@ public class RevokesJdbcRepository {
     public int updateConfirmDate(String cancellationID, LocalDate confirmDate) {
         String sql = "UPDATE [dbo].[cancellation] SET [ConfirmDate] = ? WHERE [CancellationID] = ?";
         return jdbcTemplate.update(sql, confirmDate, cancellationID);
+    }
+
+    // 新增：插入一筆 cancellation 紀錄，回傳生成的 CancellationID
+    @Transactional
+    public void insertCancellation(String applicationID, String abandonReason, String nationalID, LocalDate cancellationDate) {
+        // 產生 CancellationID 並寫入 cancellation 表
+        String cancellationID = UUID.randomUUID().toString();
+        String sql = "INSERT INTO [dbo].[cancellation] ([CancellationID], [ApplicationID], [AbandonReason], [CancellationDate], [NationalID]) VALUES (?, ?, ?, ?, ?)";
+        int updated = jdbcTemplate.update(sql, cancellationID, applicationID, abandonReason, cancellationDate, nationalID);
+        if (updated <= 0) throw new IllegalStateException("Failed to insert cancellation");
+
+        // 更新 application_participants 的 Status 為「撤銷申請審核中」，條件為 ApplicationID 與 NationalID
+        String updateStatusSql = "UPDATE [dbo].[application_participants] SET [Status] = ? WHERE [ApplicationID] = ? AND [NationalID] = ?";
+        int updateCount = jdbcTemplate.update(updateStatusSql, "撤銷申請審核中", applicationID, nationalID);
+        if (updateCount == 0) {
+            // 沒有找到對應的 application_participants 行；記錄即可（如需嚴格檢查可改為拋例外）
+            System.out.println("No application_participants row matched for ApplicationID=" + applicationID + ", NationalID=" + nationalID);
+        }
+        // method intentionally returns void
     }
 }

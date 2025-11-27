@@ -51,4 +51,10 @@ public class RevokeService {
     public int updateConfirmDate(String cancellationID, LocalDate confirmDate) {
         return revokesJdbcRepository.updateConfirmDate(cancellationID, confirmDate);
     }
+
+    // 新增：建立一筆 cancellation 並回傳 CancellationID
+    public void createCancellation(String applicationID, String abandonReason, String nationalID) {
+        LocalDate today = LocalDate.now();
+        revokesJdbcRepository.insertCancellation(applicationID, abandonReason, nationalID, today);
+    }
 }
