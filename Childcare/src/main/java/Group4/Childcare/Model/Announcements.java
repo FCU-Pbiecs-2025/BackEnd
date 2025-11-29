@@ -61,3 +61,4 @@ public class Announcements {
     @Column(name = "AttachmentPath", columnDefinition = "NVARCHAR(MAX)")
     private String attachmentPath;
 }
+

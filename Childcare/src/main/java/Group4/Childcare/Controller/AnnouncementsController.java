@@ -97,6 +97,13 @@ public class AnnouncementsController {
         return ResponseEntity.ok(summaries);
     }
 
+    // 新增：後台專用 - 取得 active announcements summaries（Type=2, Status=1, EndDate >= today）
+    @GetMapping("/active/backend")
+    public ResponseEntity<List<AnnouncementSummaryDTO>> getAdminActiveBackend() {
+        List<AnnouncementSummaryDTO> summaries = service.getAdminActiveBackend();
+        return ResponseEntity.ok(summaries);
+    }
+
     // Existing JSON POST (no file) - use JDBC insertion
     @PostMapping
     public ResponseEntity<Announcements> createAnnouncementJdbc(@RequestBody Announcements entity) {
@@ -234,6 +241,41 @@ public class AnnouncementsController {
                     .body(resource);
         } catch (MalformedURLException e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // Delete announcement by ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable UUID id) {
+        try {
+            // Check if announcement exists
+            Optional<Announcements> existing = service.getById(id);
+            if (existing.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Delete associated attachment file if exists
+            Announcements announcement = existing.get();
+            if (announcement.getAttachmentPath() != null && !announcement.getAttachmentPath().isEmpty()) {
+                try {
+                    Files.deleteIfExists(storageLocation.resolve(announcement.getAttachmentPath()));
+                } catch (IOException e) {
+                    // Log the error but don't fail the deletion
+                    System.err.println("Failed to delete attachment file: " + e.getMessage());
+                }
+            }
+
+            // Delete the announcement from database
+            boolean deleted = service.delete(id);
+            if (deleted) {
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "公告已刪除");
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.internalServerError().body("刪除公告失敗");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("刪除公告失敗: " + e.getMessage());
         }
     }
 }

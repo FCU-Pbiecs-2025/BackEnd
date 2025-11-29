@@ -2,7 +2,6 @@ package Group4.Childcare.Service;
 
 import Group4.Childcare.Model.Announcements;
 import Group4.Childcare.DTO.AnnouncementSummaryDTO;
-import Group4.Childcare.Repository.AnnouncementsRepository;
 import Group4.Childcare.Repository.AnnouncementsJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,30 +12,32 @@ import java.util.UUID;
 @Service
 public class AnnouncementsService {
     @Autowired
-    private AnnouncementsRepository repository;
-
-    @Autowired
     private AnnouncementsJdbcRepository jdbcRepository;
 
     public Announcements create(Announcements entity) {
-        return repository.save(entity);
+        return jdbcRepository.save(entity);
     }
 
     public Optional<Announcements> getById(UUID id) {
-        return repository.findById(id);
+        return jdbcRepository.findById(id);
     }
 
     public List<Announcements> getAll() {
-        return repository.findAll();
+        return jdbcRepository.findAll();
     }
 
     public Announcements update(UUID id, Announcements entity) {
         entity.setAnnouncementID(id);
-        return repository.save(entity);
+        return jdbcRepository.save(entity);
     }
 
     public List<AnnouncementSummaryDTO> getSummaryAll() {
-        return repository.findSummaryData();
+        return jdbcRepository.findSummaryData();
+    }
+
+    // 新增：取得後台用的 active announcements summaries（Type=2, Status=1, EndDate >= today）
+    public List<AnnouncementSummaryDTO> getAdminActiveBackend() {
+        return jdbcRepository.findAdminActiveBackend();
     }
 
     // 使用JDBC的offset分頁方法 - 一次取8筆
@@ -60,5 +61,19 @@ public class AnnouncementsService {
     public Announcements updateWithJdbc(UUID id, Announcements entity) {
         entity.setAnnouncementID(id);
         return jdbcRepository.save(entity);
+    }
+
+    // Delete announcement by ID
+    public boolean delete(UUID id) {
+        try {
+            // Check if announcement exists before deletion
+            if (!jdbcRepository.existsById(id)) {
+                return false;
+            }
+            jdbcRepository.deleteById(id);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

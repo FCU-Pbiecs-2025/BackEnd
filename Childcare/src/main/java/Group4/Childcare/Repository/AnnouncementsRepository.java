@@ -8,10 +8,11 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
 
-@Repository
-public interface AnnouncementsRepository extends JpaRepository<Announcements, UUID> {
+// 此 Repository 已棄用，改用 AnnouncementsJdbcRepository
+// @Repository
+// public interface AnnouncementsRepository extends JpaRepository<Announcements, UUID> {
 
-    @Query("SELECT new Group4.Childcare.DTO.AnnouncementSummaryDTO(a.announcementID, a.title, a.content, a.startDate) " +
-           "FROM Announcements a ORDER BY a.startDate DESC")
-    List<AnnouncementSummaryDTO> findSummaryData();
-}
+//     @Query("SELECT new Group4.Childcare.DTO.AnnouncementSummaryDTO(a.announcementID, a.title, a.content, a.startDate, a.attachmentPath, a.type) " +
+//            "FROM Announcements a ORDER BY a.startDate DESC")
+//     List<AnnouncementSummaryDTO> findSummaryData();
+// }

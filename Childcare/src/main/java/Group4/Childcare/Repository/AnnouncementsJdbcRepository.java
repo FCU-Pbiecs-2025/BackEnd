@@ -67,7 +67,9 @@ public class AnnouncementsJdbcRepository {
             UUID.fromString(rs.getString("AnnouncementID")),
             rs.getString("Title"),
             rs.getString("Content"),
-            startDate
+            startDate,
+            rs.getString("AttachmentPath"),
+            rs.getObject("Type") != null ? rs.getByte("Type") : null
         );
     };
 
@@ -192,19 +194,24 @@ public class AnnouncementsJdbcRepository {
 
     // Custom method: Find summary data
     public List<AnnouncementSummaryDTO> findSummaryData() {
-        String sql = "SELECT AnnouncementID, Title, Content, StartDate FROM " + TABLE_NAME;
+        String sql = "SELECT AnnouncementID, Title, Content, StartDate, AttachmentPath, Type FROM " + TABLE_NAME;
         return jdbcTemplate.query(sql, SUMMARY_ROW_MAPPER);
     }
 
     // Custom method: Find with offset pagination (for SQL Server, use string concatenation for offset/limit)
     public List<Announcements> findWithOffset(int offset, int limit) {
-        String sql = "SELECT * FROM " + TABLE_NAME + " ORDER BY CreatedTime DESC OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY";
+        // 只撈前台、已上架、在有效期間的公告
+        String sql = "SELECT * FROM " + TABLE_NAME +
+                     " WHERE Type = 1 AND Status = 1 AND StartDate <= GETDATE() AND EndDate >= GETDATE()" +
+                     " ORDER BY CreatedTime DESC OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY";
         return jdbcTemplate.query(sql, ANNOUNCEMENTS_ROW_MAPPER);
     }
 
     // Custom method: Find total count for pagination
     public long countTotal() {
-        String sql = "SELECT COUNT(*) FROM " + TABLE_NAME;
+        // 只計算前台、已上架、在有效期間的公告
+        String sql = "SELECT COUNT(*) FROM " + TABLE_NAME +
+                     " WHERE Type = 1 AND Status = 1 AND StartDate <= GETDATE() AND EndDate >= GETDATE()";
         Long count = jdbcTemplate.queryForObject(sql, Long.class);
         return count != null ? count : 0;
     }
@@ -216,10 +223,18 @@ public class AnnouncementsJdbcRepository {
         return jdbcTemplate.queryForList(sql);
     }
 
-    // Custom method: Find admin active summaries (type=2, enddate>=today, status=1)
+    // Custom method: Find admin active summaries
     public List<AnnouncementSummaryDTO> findAdminActiveSummaries() {
-        String sql = "SELECT AnnouncementID, Title, Content, StartDate FROM " + TABLE_NAME + " WHERE Status = 1 AND Type = 2 AND EndDate >= ?  order by StartDate DESC";
+        String sql = "SELECT AnnouncementID, Title, Content, StartDate,AttachmentPath,Type FROM " + TABLE_NAME + "  order by StartDate DESC";
+        java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+        return jdbcTemplate.query(sql, SUMMARY_ROW_MAPPER);
+    }
+
+    // Custom method: Find admin active summaries (type=2, enddate>=today, status=1)
+    public List<AnnouncementSummaryDTO> findAdminActiveBackend() {
+        String sql = "SELECT AnnouncementID, Title, Content, StartDate,AttachmentPath,Type FROM " + TABLE_NAME + " WHERE Status = 1 AND Type = 2 AND EndDate >= ?  order by StartDate DESC";
         java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
         return jdbcTemplate.query(sql, SUMMARY_ROW_MAPPER, today);
     }
+
 }
