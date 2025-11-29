@@ -8,8 +8,11 @@ import Group4.Childcare.DTO.AdminCaseSearchRequestDto;
 import Group4.Childcare.DTO.CaseOffsetListDTO;
 import Group4.Childcare.DTO.CaseEditUpdateDTO;
 import Group4.Childcare.DTO.UserApplicationDetailsDTO;
+import Group4.Childcare.DTO.ApplicationParticipantDTO;
+import Group4.Childcare.Model.ApplicationParticipants;
 import Group4.Childcare.Service.ApplicationsService;
 import Group4.Childcare.Service.FileService;
+import Group4.Childcare.Service.ApplicationParticipantsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +36,9 @@ public class ApplicationsController {
 
   @Autowired
   private FileService fileService;
+
+  @Autowired
+  private ApplicationParticipantsService applicationParticipantsService;
 
   @Autowired
   public ApplicationsController(ApplicationsService service) {
@@ -365,7 +371,6 @@ public class ApplicationsController {
     }
 
     try {
-      // 建立新的 Application 實體
       Applications newApplication = new Applications();
 
       // 🔍 Debug：檢查 Controller 收到的 DTO 與 userID 映射
@@ -485,7 +490,95 @@ public class ApplicationsController {
         }
       }
 
-      // 返回建立成功的案件資訊（包含附件檔名）
+      // 假設此處已經完成 newApplication = service.create(newApplication);
+      // 並且已經取得 applicationId 並設到 caseDto.setApplicationID(applicationId);
+
+      // === 新增：建立 application_participants 資料（家長 + 幼兒） ===
+      // 這裡不要重新宣告 applicationId，直接使用前面建立的變數
+
+      // 建立通用方法把 DTO 轉成 Entity 並存檔
+      java.util.function.BiConsumer<ApplicationParticipantDTO, Boolean> saveParticipant = (dto, isParent) -> {
+        if (dto == null) return;
+        ApplicationParticipants participant = new ApplicationParticipants();
+        participant.setParticipantID(java.util.UUID.randomUUID());
+        participant.setApplicationID(applicationId);
+        participant.setParticipantType(isParent); // true = 家長, false = 幼兒
+        participant.setNationalID(dto.nationalID);
+        participant.setName(dto.name);
+
+        // gender: 依你現有慣例，"男"/"M" 視為 true，其餘視為 false
+        if (dto.gender != null) {
+          String g = dto.gender.trim();
+          boolean genderBool = "男".equals(g) || "M".equalsIgnoreCase(g) || "1".equals(g);
+          participant.setGender(genderBool);
+        } else {
+          participant.setGender(null);
+        }
+
+        participant.setRelationShip(dto.relationShip);
+        participant.setOccupation(dto.occupation);
+        participant.setPhoneNumber(dto.phoneNumber);
+        participant.setHouseholdAddress(dto.householdAddress);
+        participant.setMailingAddress(dto.mailingAddress);
+        participant.setEmail(dto.email);
+
+        // 生日與停權結束日字串轉 LocalDate（格式預期為 yyyy-MM-dd）
+        try {
+          if (dto.birthDate != null && !dto.birthDate.isEmpty()) {
+            participant.setBirthDate(java.time.LocalDate.parse(dto.birthDate));
+          }
+        } catch (Exception e) {
+          System.err.println("Failed to parse birthDate for participant: " + dto.birthDate + ", " + e.getMessage());
+        }
+        participant.setIsSuspended(dto.isSuspended);
+        try {
+          if (dto.suspendEnd != null && !dto.suspendEnd.isEmpty()) {
+            participant.setSuspendEnd(java.time.LocalDate.parse(dto.suspendEnd));
+          }
+        } catch (Exception e) {
+          System.err.println("Failed to parse suspendEnd for participant: " + dto.suspendEnd + ", " + e.getMessage());
+        }
+
+        participant.setCurrentOrder(dto.currentOrder);
+        participant.setStatus(dto.status);
+        participant.setReason(dto.reason);
+
+        // classID 轉 UUID
+        try {
+          if (dto.classID != null && !dto.classID.isEmpty()) {
+            participant.setClassID(java.util.UUID.fromString(dto.classID));
+          }
+        } catch (Exception e) {
+          System.err.println("Failed to parse classID for participant: " + dto.classID + ", " + e.getMessage());
+        }
+
+        // reviewDate 直接帶入（DTO 已是 LocalDateTime）
+        participant.setReviewDate(dto.reviewDate);
+
+        try {
+          applicationParticipantsService.create(participant);
+        } catch (Exception ex) {
+          System.err.println("Failed to save ApplicationParticipant: " + ex.getMessage());
+          ex.printStackTrace();
+        }
+      };
+
+      // 先存家長（parents）
+      if (caseDto.getParents() != null) {
+        for (ApplicationParticipantDTO parentDto : caseDto.getParents()) {
+          saveParticipant.accept(parentDto, true);
+        }
+      }
+
+      // 再存幼兒（children）
+      if (caseDto.getChildren() != null) {
+        for (ApplicationParticipantDTO childDto : caseDto.getChildren()) {
+          saveParticipant.accept(childDto, false);
+        }
+      }
+
+      // === 建立 participants 完成 ===
+
       return ResponseEntity.ok(caseDto);
     } catch (Exception ex) {
       ex.printStackTrace();
@@ -494,9 +587,77 @@ public class ApplicationsController {
   }
 
   /**
-   * 申請審核reviewEdit.vue 畫面呈現使用
+   * 申請審核 reviewEdit.vue 畫面使用的案件明細 API
    *
-   * */
+   * <p>用途：</p>
+   * <ul>
+   *   <li>依 ApplicationID 取得單一案件的完整資訊</li>
+   *   <li>包含：案件基本資料、家長/幼兒參與者清單、附件檔案欄位</li>
+   * </ul>
+   *
+   * <p>HTTP Method / 路徑：</p>
+   * <pre>
+   *   GET /applications/{id}
+   * </pre>
+   *
+   * <p>Path Variable：</p>
+   * <ul>
+   *   <li><b>id</b> (UUID)：applications.ApplicationID</li>
+   * </ul>
+   *
+   * <p>Query Parameter（可選）：</p>
+   * <ul>
+   *   <li><b>NationalID</b> (String)：
+   *     若提供，則 children 清單只會回傳該幼兒（parents 仍回傳全部家長）。
+   *   </li>
+   * </ul>
+   *
+   * <p>回傳型別：</p>
+   * <pre>
+   *   200 OK  -> ApplicationCaseDTO JSON
+   *   404 Not Found -> 找不到指定 ApplicationID 的案件
+   * </pre>
+   *
+   * <p>ApplicationCaseDTO 結構重點：</p>
+   * <ul>
+   *   <li><b>applicationId</b> (UUID)：案件 ID (applications.ApplicationID)</li>
+   *   <li><b>applicationDate</b> (LocalDate)：申請日期 (applications.ApplicationDate)</li>
+   *   <li><b>institutionName</b> (String)：機構名稱 (institutions.InstitutionName)</li>
+   *   <li><b>attachmentPath</b> ~ <b>attachmentPath3</b> (String)：
+   *     對應 applications.AttachmentPath ~ AttachmentPath3 的檔名（不含路徑）。
+   *   </li>
+   *   <li><b>parents</b> (ApplicationParticipantDTO[])：家長清單（ParticipantType=家長）</li>
+   *   <li><b>children</b> (ApplicationParticipantDTO[])：幼兒清單（ParticipantType=幼兒）
+   *     - 若有提供 NationalID query，children 只包含該幼兒
+   *   </li>
+   * </ul>
+   *
+   * <p>附件檔案實際 URL 組合方式（搭配 WebConfig）：</p>
+   * <ul>
+   *   <li>WebConfig 將實體資料夾 <code>IdentityResource</code> 映射為 <code>/identity-files/**</code></li>
+   *   <li>若檔案實際存放於：<code>{projectRoot}/IdentityResource/{檔名}</code></li>
+   *   <li>前端可用下列方式組 URL：</li>
+   * </ul>
+   * <pre>
+   *   // 範例：DTO 回傳
+   *   {
+   *     "applicationId": "4286bfa6-fcfd-40d4-afb2-2c16e4dd5eec",
+   *     "attachmentPath": "a_file_1.jpg"
+   *   }
+   *
+   *   // 對應可存取 URL
+   *   http://localhost:8080/identity-files/a_file_1.jpg
+   * </pre>
+   *
+   * <p>使用範例：</p>
+   * <pre>
+   *   // 取得整個案件（所有家長與幼兒）
+   *   GET /applications/4286bfa6-fcfd-40d4-afb2-2c16e4dd5eec
+   *
+   *   // 只關注某一幼兒（例如身分證 E567890123），children 陣列只回傳該幼兒
+   *   GET /applications/4286bfa6-fcfd-40d4-afb2-2c16e4dd5eec?NationalID=E567890123
+   * </pre>
+   */
   @GetMapping("/{id}")
   public ResponseEntity<?> getApplicationById(@PathVariable UUID id,
                                               @RequestParam(required = false, value = "NationalID") String nationalID) {

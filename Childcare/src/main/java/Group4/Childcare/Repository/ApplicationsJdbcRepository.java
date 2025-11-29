@@ -135,6 +135,10 @@ public class ApplicationsJdbcRepository {
 
   public Optional<ApplicationCaseDTO> findApplicationCaseById(UUID id, String nationalID) {
     String sql = "SELECT a.ApplicationID, a.ApplicationDate, i.InstitutionName, " +
+            // 加入身分別欄位
+            "a.IdentityType, " +
+            // 從 applications 帶出四個附件欄位
+            "a.AttachmentPath, a.AttachmentPath1, a.AttachmentPath2, a.AttachmentPath3, " +
             "ap.ParticipantType, ap.NationalID, ap.Name, ap.Gender, ap.RelationShip, ap.Occupation, " +
             "ap.PhoneNumber, ap.HouseholdAddress, ap.MailingAddress, ap.Email, ap.BirthDate, " +
             "ap.IsSuspended, ap.SuspendEnd, ap.CurrentOrder, ap.Status, ap.Reason, ap.ClassID, ap.ReviewDate " +
@@ -158,6 +162,23 @@ public class ApplicationsJdbcRepository {
         dto.institutionName = rs.getString("InstitutionName");
         dto.parents = new java.util.ArrayList<>();
         dto.children = new java.util.ArrayList<>();
+
+        // 映射身分別 IdentityType -> ApplicationCaseDTO.identityType
+        try {
+          Object idTypeObj = rs.getObject("IdentityType");
+          if (idTypeObj != null) {
+            dto.identityType = ((Number) idTypeObj).byteValue();
+          }
+        } catch (Exception ex) {
+          dto.identityType = null;
+        }
+
+        // 映射附件欄位
+        try { dto.attachmentPath = rs.getString("AttachmentPath"); } catch (Exception ex) { dto.attachmentPath = null; }
+        try { dto.attachmentPath1 = rs.getString("AttachmentPath1"); } catch (Exception ex) { dto.attachmentPath1 = null; }
+        try { dto.attachmentPath2 = rs.getString("AttachmentPath2"); } catch (Exception ex) { dto.attachmentPath2 = null; }
+        try { dto.attachmentPath3 = rs.getString("AttachmentPath3"); } catch (Exception ex) { dto.attachmentPath3 = null; }
+
         resultMap.put("header", dto);
       }
 
@@ -295,13 +316,26 @@ public class ApplicationsJdbcRepository {
   }
 
   public List<ApplicationSummaryWithDetailsDTO> findSummariesWithOffset(int offset, int limit) {
-    String sql = "SELECT a.ApplicationID, a.ApplicationDate, u.Name AS Name, i.InstitutionName AS InstitutionName, ap.Status, a.InstitutionID, ap.NationalID AS NationalID, ap.ParticipantType AS ParticipantType, ap.Name as PName " +
-            "FROM " + TABLE_NAME + " a " +
-            "LEFT JOIN users u ON a.UserID = u.UserID " +
-            "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
-            "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
-            "ORDER BY a.ApplicationDate DESC " +
-            "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+    // 以 application_participants 為主體，每一列代表一個幼兒參與者
+    String sql =
+        "SELECT " +
+        "  a.ApplicationID, " +
+        "  a.ApplicationDate, " +
+        "  u.Name AS Name, " +                    // 申請人名稱（users.Name）\n" +
+        "  i.InstitutionName AS InstitutionName, " +
+        "  ap.Status, " +
+        "  a.InstitutionID, " +
+        "  ap.NationalID AS NationalID, " +       // 幼兒身分證\n" +
+        "  ap.ParticipantType AS ParticipantType, " +
+        "  ap.Name AS PName " +                   // 幼兒姓名\n" +
+        "FROM application_participants ap " +
+        "JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
+        "LEFT JOIN users u ON a.UserID = u.UserID " +
+        "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
+        "WHERE ap.ParticipantType = 0 " +         // 只取幼兒\n" +
+        "ORDER BY a.ApplicationDate DESC, ap.CurrentOrder ASC " +
+        "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+
     try {
       return jdbcTemplate.query(sql, DETAILS_ROW_MAPPER, offset, limit);
     } catch (Exception e) {
@@ -422,6 +456,7 @@ public class ApplicationsJdbcRepository {
     sql.append("ORDER BY a.ApplicationDate DESC ")
        .append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
 
+    // 將分頁參數加入預備語句參數列表
     params.add(offset);
     params.add(limit);
 
@@ -545,7 +580,12 @@ public class ApplicationsJdbcRepository {
             "ap.MailingAddress, " +
             "ap.Email, " +
             "ap.PhoneNumber, " +
-            "ap.NationalID AS ParticipantNationalID " +
+            "ap.NationalID AS ParticipantNationalID, " +
+            // 新增：從 applications 表帶出四個附件欄位
+            "a.AttachmentPath, " +
+            "a.AttachmentPath1, " +
+            "a.AttachmentPath2, " +
+            "a.AttachmentPath3 " +
             "FROM applications a " +
             "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
             "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
@@ -620,6 +660,12 @@ public class ApplicationsJdbcRepository {
       userDTO.setNationalID(rs.getString("ParticipantNationalID"));
 
       dto.setUser(userDTO);
+
+      // 來自 applications 表：附件欄位
+      try { dto.setAttachmentPath(rs.getString("AttachmentPath")); } catch (Exception ex) { /* ignore */ }
+      try { dto.setAttachmentPath1(rs.getString("AttachmentPath1")); } catch (Exception ex) { /* ignore */ }
+      try { dto.setAttachmentPath2(rs.getString("AttachmentPath2")); } catch (Exception ex) { /* ignore */ }
+      try { dto.setAttachmentPath3(rs.getString("AttachmentPath3")); } catch (Exception ex) { /* ignore */ }
 
       return dto;
     }, nationalID);
