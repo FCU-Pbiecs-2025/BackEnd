@@ -227,7 +227,7 @@ public class ApplicationsJdbcRepository {
         if (p == null || p.nationalID == null || p.nationalID.isEmpty()) continue;
 
         Boolean participantType = null;
-        if (p.participantType != null) participantType = "家長".equals(p.participantType);
+        if (p.participantType != null) participantType = "家長".equals(p.participantType) || "1".equals(p.participantType);
         Boolean gender = null;
         if (p.gender != null) gender = "男".equals(p.gender);
         java.sql.Date birthDate = null;
@@ -360,7 +360,7 @@ public class ApplicationsJdbcRepository {
    */
   public List<CaseOffsetListDTO> findCaseListWithOffset(int offset, int limit, String status, UUID institutionId,
                                                          UUID applicationId, UUID classId, String applicantNationalId,
-                                                         Integer caseNumber, String identityType) {
+                                                         Long caseNumber, String identityType) {
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT ")
        .append("a.CaseNumber, ")
@@ -427,7 +427,7 @@ public class ApplicationsJdbcRepository {
 
     RowMapper<CaseOffsetListDTO> rowMapper = (rs, rowNum) -> {
       CaseOffsetListDTO dto = new CaseOffsetListDTO();
-      dto.setCaseNumber(rs.getInt("CaseNumber"));
+      dto.setCaseNumber(rs.getLong("CaseNumber"));
       if (rs.getDate("ApplicationDate") != null) {
         dto.setApplicationDate(rs.getDate("ApplicationDate").toLocalDate());
       }
@@ -471,7 +471,7 @@ public class ApplicationsJdbcRepository {
    * @return 總筆數
    */
   public long countCaseList(String status, UUID institutionId, UUID applicationId, UUID classId,
-                            String applicantNationalId, Integer caseNumber, String identityType) {
+                            String applicantNationalId, Long caseNumber, String identityType) {
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT COUNT(DISTINCT a.ApplicationID) ")
        .append("FROM applications a ")
@@ -556,7 +556,7 @@ public class ApplicationsJdbcRepository {
       CaseEditUpdateDTO dto = new CaseEditUpdateDTO();
 
       // 來自 applications 表
-      try { Object caseNum = rs.getObject("CaseNumber"); if (caseNum != null) dto.setCaseNumber(((Number) caseNum).intValue()); } catch (Exception ex) { }
+      try { Object caseNum = rs.getObject("CaseNumber"); if (caseNum != null) dto.setCaseNumber(((Number) caseNum).longValue()); } catch (Exception ex) { }
 
       if (rs.getDate("ApplicationDate") != null) {
         dto.setApplyDate(rs.getDate("ApplicationDate").toLocalDate());

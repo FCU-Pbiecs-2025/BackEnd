@@ -18,7 +18,7 @@ public class AdminCaseSearchRequestDto {
   private UUID classId;
 
   /** 流水案號（精確查詢） */
-  private Integer caseNumber;
+  private Long caseNumber;
 
   /** 申請人身分證字號 / 護照號碼 */
   private String applicantNationalId;

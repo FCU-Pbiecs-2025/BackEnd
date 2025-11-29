@@ -75,7 +75,9 @@ public class ApplicationsService {
       for (ApplicationParticipantDTO p : dto.participants) {
         ApplicationParticipants entity = new ApplicationParticipants();
         entity.setApplicationID(app.getApplicationID());
-        entity.setParticipantType("家長".equals(p.participantType));
+        // 支持 "家長"/"幼兒" 文字或 1/0 數字格式
+        boolean isParent = "家長".equals(p.participantType) || "1".equals(p.participantType);
+        entity.setParticipantType(isParent);
         entity.setNationalID(p.nationalID);
         entity.setName(p.name);
         entity.setGender("男".equals(p.gender));
@@ -144,7 +146,7 @@ public class ApplicationsService {
    */
   public List<CaseOffsetListDTO> getCaseListWithOffset(int offset, int limit, String status, UUID institutionId,
                                                         UUID applicationId, UUID classId, String applicantNationalId,
-                                                        Integer caseNumber, String identityType) {
+                                                        Long caseNumber, String identityType) {
     return applicationsJdbcRepository.findCaseListWithOffset(offset, limit, status, institutionId,
                                                              applicationId, classId, applicantNationalId,
                                                              caseNumber, identityType);
@@ -162,7 +164,7 @@ public class ApplicationsService {
    * @return 總筆數
    */
   public long countCaseList(String status, UUID institutionId, UUID applicationId, UUID classId,
-                            String applicantNationalId, Integer caseNumber, String identityType) {
+                            String applicantNationalId, Long caseNumber, String identityType) {
     return applicationsJdbcRepository.countCaseList(status, institutionId, applicationId, classId,
                                                     applicantNationalId, caseNumber, identityType);
   }
@@ -183,10 +185,22 @@ public class ApplicationsService {
     // 取第一個找到的案件記錄
     CaseEditUpdateDTO result = results.getFirst();
 
-    // 自動讀取檔案列表
+    // 自動讀取檔案列表並設置到四個路徑字段
     if (result.getApplicationID() != null) {
       List<String> files = fileService.getFilesByApplicationId(result.getApplicationID());
-      result.setFiles(files);
+      // 將檔案列表對應到 attachmentPath, attachmentPath1, attachmentPath2, attachmentPath3
+      if (files.size() > 0) {
+        result.setAttachmentPath(files.get(0));
+      }
+      if (files.size() > 1) {
+        result.setAttachmentPath1(files.get(1));
+      }
+      if (files.size() > 2) {
+        result.setAttachmentPath2(files.get(2));
+      }
+      if (files.size() > 3) {
+        result.setAttachmentPath3(files.get(3));
+      }
     }
 
     // 查詢該案件的所有參與者（家長和幼兒）

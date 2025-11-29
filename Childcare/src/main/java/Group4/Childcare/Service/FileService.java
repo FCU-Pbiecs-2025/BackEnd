@@ -94,13 +94,14 @@ public class FileService {
   }
 
   /**
-   * 獲取案件文件夾的完整路徑
-   * 檔案夾位置: IdentityResource/{ApplicationID}/
-   * @param applicationId 案件ID
-   * @return 文件夾路徑
+   * 取得案件附件儲存的根目錄路徑
+   * 選項A：所有案件共用同一個資料夾（例如 IdentityResource）
+   * 不再依照 ApplicationID 建立子資料夾，避免自動建立資料夾的需求
+   * @param applicationId 目前不再作為子資料夾使用，保留參數以維持呼叫端介面
+   * @return 根目錄路徑（例如 IdentityResource）
    */
   public Path getFolderPath(UUID applicationId) {
-    return Paths.get(uploadDir, applicationId.toString());
+    return Paths.get(uploadDir); // 不再附加 applicationId 子資料夾
   }
 
   /**
@@ -194,5 +195,3 @@ public class FileService {
     return null;
   }
 }
-
-

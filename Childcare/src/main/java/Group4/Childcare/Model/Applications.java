@@ -23,7 +23,7 @@ public class Applications {
     private LocalDate applicationDate;
 
     @Column(name = "CaseNumber")
-    private Integer caseNumber;
+    private Long caseNumber;
 
     @Column(name = "InstitutionID", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID institutionID;

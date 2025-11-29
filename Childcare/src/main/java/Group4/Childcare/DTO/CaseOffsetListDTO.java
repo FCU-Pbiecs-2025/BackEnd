@@ -12,7 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CaseOffsetListDTO {
   // 案件編號 (applications.CaseNumber)
-  private Integer caseNumber;
+  private Long caseNumber;
 
   // 聲請日期 (applications.ApplicationDate)
   private LocalDate applicationDate;

@@ -9,15 +9,19 @@ import Group4.Childcare.DTO.CaseOffsetListDTO;
 import Group4.Childcare.DTO.CaseEditUpdateDTO;
 import Group4.Childcare.DTO.UserApplicationDetailsDTO;
 import Group4.Childcare.Service.ApplicationsService;
+import Group4.Childcare.Service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @RestController
 @RequestMapping("/applications")
@@ -26,6 +30,9 @@ public class ApplicationsController {
 
   @Autowired
   private JdbcTemplate jdbcTemplate;
+
+  @Autowired
+  private FileService fileService;
 
   @Autowired
   public ApplicationsController(ApplicationsService service) {
@@ -115,21 +122,95 @@ public class ApplicationsController {
    * 4. 如果文件夾存在 → 讀取所有檔案名稱到 files 陣列
    *
    * 成功回應 (200 OK):
-   * {
-   *   "caseNumber": 1,
-   *   "applyDate": "2025-01-15",
-   *   "identityType": 1,
-   *   "institutionId": "550e8400-e29b-41d4-a716-446655440000",
-   *   "institutionName": "台北市立幼兒園",
-   *   "selectedClass": "小班A",
-   *   "currentOrder": 5,
-   *   "reviewDate": "2025-01-20T10:00:00",
-   *   "applicationID": "550e8400-e29b-41d4-a716-446655440001",
-   *   "User": { ... },
-   *   "parents": [ ... ],
-   *   "children": [ ... ],
-   *   "files": ["證明文件1.pdf", "身份證掃描.jpg"]
-   * }
+  {
+  "caseNumber": 1004,
+  "applyDate": "2024-04-05",
+  "identityType": 2,
+  "institutionId": "3a38b774-edbe-4423-b0ec-8844274ffa07",
+  "institutionName": "新竹縣公設民營嘉豐托嬰中心",
+  "selectedClass": "小班",
+  "currentOrder": 4,
+  "reviewDate": null,
+  "applicationID": "112e7e08-136d-4439-82ad-d1f355942af3",
+  "parents": [
+  {
+  "participantType": "家長",
+  "nationalID": "J012345678",
+  "name": "林建國",
+  "gender": "男",
+  "relationShip": "父親",
+  "occupation": "公務員",
+  "phoneNumber": "0967890123",
+  "householdAddress": "高雄市前金區中正路50號",
+  "mailingAddress": "高雄市前金區中正路50號",
+  "email": "lin@parent.com",
+  "birthDate": "1987-04-18",
+  "isSuspended": false,
+  "suspendEnd": null,
+  "currentOrder": null,
+  "status": "審核中",
+  "reason": null,
+  "classID": null,
+  "reviewDate": null
+  },
+  {
+  "participantType": "家長",
+  "nationalID": "R890123456",
+  "name": "林秀英",
+  "gender": "女",
+  "relationShip": "母親",
+  "occupation": "家管",
+  "phoneNumber": "0978901234",
+  "householdAddress": "高雄市前金區中正路50號",
+  "mailingAddress": "高雄市前金區中正路50號",
+  "email": "lin.mother@parent.com",
+  "birthDate": "1990-02-28",
+  "isSuspended": false,
+  "suspendEnd": null,
+  "currentOrder": null,
+  "status": "審核中",
+  "reason": null,
+  "classID": null,
+  "reviewDate": null
+  }
+  ],
+  "children": [
+  {
+  "participantType": "幼兒",
+  "nationalID": "Q789012345",
+  "name": "林小強",
+  "gender": "男",
+  "relationShip": null,
+  "occupation": null,
+  "phoneNumber": null,
+  "householdAddress": "高雄市前金區中正路50號",
+  "mailingAddress": "高雄市前金區中正路50號",
+  "email": null,
+  "birthDate": "2023-03-12",
+  "isSuspended": false,
+  "suspendEnd": null,
+  "currentOrder": 4,
+  "status": "審核中",
+  "reason": null,
+  "classID": "3A384085-F1A5-4DAC-901A-B8EA1A4A9B72",
+  "reviewDate": null
+  }
+  ],
+  "attachmentPath": null,
+  "attachmentPath1": null,
+  "attachmentPath2": null,
+  "attachmentPath3": null,
+  "user": {
+  "email": null,
+  "name": "林小強",
+  "userID": "A4F1F448-E25B-4595-83D9-CEC86662EA00",
+  "gender": "M",
+  "nationalID": "Q789012345",
+  "birthDate": "2023-03-12",
+  "phoneNumber": null,
+  "mailingAddress": "高雄市前金區中正路50號"
+  }
+  }
    *
    * 錯誤回應:
    * - 400 Bad Request - 缺少或無效的 childrenNationalID 參數
@@ -154,7 +235,267 @@ public class ApplicationsController {
   }
 
   /**
+   * 提交新的申請案件（包含案件資訊和附件檔案）
+   *
+   * 功能說明：
+   * 1. 接收 CaseEditUpdateDTO 格式的申請資料（JSON）
+   * 2. 支持上傳最多 4 個附件檔案
+   * 3. 建立案件資訊並將檔案儲存到 IdentityResource/{applicationID}/ 目錄
+   * 4. 返回建立成功的完整案件資訊
+   *
+   * RequestParam 說明：
+   *  - file (可選): 第一個附件檔案
+   *  - file1 (可選): 第二個附件檔案
+   *  - file2 (可選): 第三個附件檔案
+   *  - file3 (可選): 第四個附件檔案
+   *
+   * RequestBody (CaseEditUpdateDTO):
+   *  - caseNumber, applyDate, identityType, institutionId, institutionName: 案件基本資訊
+   *  - selectedClass, currentOrder: 班級和序號資訊
+   *  - User: 申請人信息（UserSimpleDTO）
+   *  - parents: 家長列表
+   *  - children: 幼兒列表
+   *  - attachmentPath, attachmentPath1, attachmentPath2, attachmentPath3: 附件路徑（由系統設定）
+   *
+   * 回傳值：
+   *  - 200 OK + 完整的 CaseEditUpdateDTO（包含自動設置的 applicationID、attachmentPath 等）
+   *
+   * 使用範例：
+   * POST /applications/case/submit
+   * Content-Type: multipart/form-data
+   *
+   * 參數：
+   {
+   "caseNumber": 1,
+   "applyDate": "2025-11-27",
+   "identityType": 1,
+   "institutionId": "550e8400-e29b-41d4-a716-446655440000",
+   "institutionName": "逢甲幼兒園",
+   "selectedClass": "CLASS001",
+   "currentOrder": 1,
+   "User": {
+   "UserID": "550e8400-e29b-41d4-a716-446655440001",
+   "Name": "王小明",
+   "Gender": "M",
+   "BirthDate": "1990-01-15",
+   "MailingAddress": "台中市西屯區豐樂路123號",
+   "email": "wang@example.com",
+   "PhoneNumber": "0912345678",
+   "NationalID": "A123456789"
+   },
+   "parents": [
+   {
+   "participantType": "PARENT",
+   "nationalID": "A123456789",
+   "name": "王小明",
+   "gender": "M",
+   "relationShip": "父親",
+   "occupation": "工程師",
+   "phoneNumber": "0912345678",
+   "householdAddress": "台中市西屯區豐樂路123號",
+   "mailingAddress": "台中市西屯區豐樂路123號",
+   "email": "wang@example.com",
+   "birthDate": "1990-01-15",
+   "isSuspended": false,
+   "suspendEnd": null,
+   "currentOrder": 1,
+   "status": "pending",
+   "reason": null,
+   "classID": null
+   },
+   {
+   "participantType": "PARENT",
+   "nationalID": "B987654321",
+   "name": "王美美",
+   "gender": "F",
+   "relationShip": "母親",
+   "occupation": "護理師",
+   "phoneNumber": "0987654321",
+   "householdAddress": "台中市西屯區豐樂路123號",
+   "mailingAddress": "台中市西屯區豐樂路123號",
+   "email": "wang.meimei@example.com",
+   "birthDate": "1992-03-20",
+   "isSuspended": false,
+   "suspendEnd": null,
+   "currentOrder": 2,
+   "status": "pending",
+   "reason": null,
+   "classID": null
+   }
+   ],
+   "children": [
+   {
+   "participantType": "CHILD",
+   "nationalID": "C987654321",
+   "name": "王小美",
+   "gender": "F",
+   "relationShip": "女兒",
+   "occupation": null,
+   "phoneNumber": null,
+   "householdAddress": "台中市西屯區豐樂路123號",
+   "mailingAddress": "台中市西屯區豐樂路123號",
+   "email": null,
+   "birthDate": "2021-06-10",
+   "isSuspended": false,
+   "suspendEnd": null,
+   "currentOrder": 1,
+   "status": "pending",
+   "reason": null,
+   "classID": "CLASS001"
+   }
+   ],
+   "attachmentPath": null,
+   "attachmentPath1": null,
+   "attachmentPath2": null,
+   "attachmentPath3": null
+   }
+
+
+   * */
+  @PostMapping("/case/submit")
+  public ResponseEntity<?> submitApplicationCase(
+          @RequestPart(value = "caseDto") CaseEditUpdateDTO caseDto,
+          @RequestPart(value = "file", required = false) MultipartFile file,
+          @RequestPart(value = "file1", required = false) MultipartFile file1,
+          @RequestPart(value = "file2", required = false) MultipartFile file2,
+          @RequestPart(value = "file3", required = false) MultipartFile file3) {
+
+    if (caseDto == null) {
+      return ResponseEntity.badRequest().body("Missing or invalid caseDto parameter");
+    }
+
+    try {
+      // 建立新的 Application 實體
+      Applications newApplication = new Applications();
+
+      // 🔍 Debug：檢查 Controller 收到的 DTO 與 userID 映射
+      System.out.println("=== submitApplicationCase DEBUG START ===");
+      System.out.println("Raw caseDto = " + caseDto);
+      if (caseDto.getUser() == null) {
+        System.out.println("caseDto.getUser() = null");
+      } else {
+        System.out.println("caseDto.getUser() = " + caseDto.getUser());
+        try {
+          System.out.println("caseDto.getUser().getUserID() = " + caseDto.getUser().getUserID());
+        } catch (Exception e) {
+          System.out.println("Error reading caseDto.getUser().getUserID(): " + e.getMessage());
+        }
+      }
+
+      // 生成唯一的 Application ID
+      UUID applicationId = UUID.randomUUID();
+      newApplication.setApplicationID(applicationId);
+
+      // 從 caseDto 中設置必要的資訊
+      newApplication.setApplicationDate(caseDto.getApplyDate() != null ?
+          caseDto.getApplyDate() : java.time.LocalDate.now());
+      newApplication.setCaseNumber(caseDto.getCaseNumber());
+      newApplication.setInstitutionID(caseDto.getInstitutionId());
+      newApplication.setIdentityType(caseDto.getIdentityType() != null ?
+          caseDto.getIdentityType().byteValue() : (byte)0);
+
+      // 如果有 User 資訊，設定 UserID
+      if (caseDto.getUser() != null) {
+        try {
+          String userIdStr = caseDto.getUser().getUserID();
+          System.out.println("Raw userIdStr from DTO = " + userIdStr);
+          if (userIdStr != null && !userIdStr.trim().isEmpty()) {
+            UUID userId = UUID.fromString(userIdStr.trim());
+            newApplication.setUserID(userId);
+          } else {
+            System.out.println("userIdStr is null or empty");
+          }
+        } catch (IllegalArgumentException ex) {
+          System.err.println("Failed to parse UserID: " + ex.getMessage());
+        }
+      } else {
+        System.out.println("caseDto.getUser() is null, skip mapping userID");
+      }
+
+      System.out.println("newApplication.getUserID() AFTER mapping = " + newApplication.getUserID());
+      System.out.println("=== submitApplicationCase DEBUG END ===");
+
+      // 先儲存 Application（此時還沒有 attachmentPath 資訊）
+      try {
+        newApplication = service.create(newApplication);
+      } catch (Exception ex) {
+        System.err.println("Failed to create Application: " + ex.getMessage());
+        ex.printStackTrace();
+        return ResponseEntity.status(500).body("Failed to create application: " + ex.getMessage());
+      }
+
+      // 設置 Application ID 到 caseDto
+      caseDto.setApplicationID(applicationId);
+
+      // 儲存檔案（不再由 FileService 額外建立資料夾，若需要會在 getFolderPath/createDirectories 自動建立）
+      List<MultipartFile> files = new ArrayList<>();
+      if (file != null && !file.isEmpty()) files.add(file);
+      if (file1 != null && !file1.isEmpty()) files.add(file1);
+      if (file2 != null && !file2.isEmpty()) files.add(file2);
+      if (file3 != null && !file3.isEmpty()) files.add(file3);
+
+      for (int i = 0; i < files.size(); i++) {
+        MultipartFile uploadedFile = files.get(i);
+        try {
+          String originalFileName = uploadedFile.getOriginalFilename();
+          if (originalFileName == null || originalFileName.trim().isEmpty()) {
+            originalFileName = "attachment";
+          }
+          String fileName = UUID.randomUUID() + "_" + originalFileName;
+          Path filePath = fileService.getFolderPath(applicationId).resolve(fileName);
+
+          // 直接寫檔，不再自動建立父目錄；若目錄不存在將拋出錯誤，方便你自行管理資料夾結構
+          Files.copy(uploadedFile.getInputStream(), filePath);
+
+          // 設置對應的 attachmentPath 到 DTO 與 Entity，之後會一起寫入 DB
+          switch (i) {
+            case 0:
+              caseDto.setAttachmentPath(fileName);
+              newApplication.setAttachmentPath(fileName);
+              break;
+            case 1:
+              caseDto.setAttachmentPath1(fileName);
+              newApplication.setAttachmentPath1(fileName);
+              break;
+            case 2:
+              caseDto.setAttachmentPath2(fileName);
+              newApplication.setAttachmentPath2(fileName);
+              break;
+            case 3:
+              caseDto.setAttachmentPath3(fileName);
+              newApplication.setAttachmentPath3(fileName);
+              break;
+          }
+        } catch (Exception ex) {
+          System.err.println("Failed to save file " + i + ": " + ex.getMessage());
+          ex.printStackTrace();
+          return ResponseEntity.status(500).body("Failed to save file " + i + ": " + ex.getMessage());
+        }
+      }
+
+      // 如果有任何附件路徑被設定，更新一次 Application 以寫入 DB
+      if (newApplication.getAttachmentPath() != null ||
+          newApplication.getAttachmentPath1() != null ||
+          newApplication.getAttachmentPath2() != null ||
+          newApplication.getAttachmentPath3() != null) {
+        try {
+          service.create(newApplication); // 再次 save 以更新附件欄位
+        } catch (Exception ex) {
+          System.err.println("Failed to update Application attachments: " + ex.getMessage());
+        }
+      }
+
+      // 返回建立成功的案件資訊（包含附件檔名）
+      return ResponseEntity.ok(caseDto);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      return ResponseEntity.status(500).body("Error submitting application case: " + ex.getMessage());
+    }
+  }
+
+  /**
    * 申請審核reviewEdit.vue 畫面呈現使用
+   *
    * */
   @GetMapping("/{id}")
   public ResponseEntity<?> getApplicationById(@PathVariable UUID id,
@@ -165,7 +506,7 @@ public class ApplicationsController {
 
   /**
    * 更新單一申請（包含參與者資料與審核欄位）
-   *
+   * 快速審核單個參與者的狀態
    * 使用方式分為兩種：
    * 1. 更新單個參與者：提供 NationalID 參數（只更新該參與者的 status、reason、reviewDate）
    * 2. 批量更新：不提供 NationalID，直接傳遞 ApplicationCaseDTO JSON body
@@ -355,7 +696,7 @@ public class ApplicationsController {
   public ResponseEntity<List<Map<String, Object>>> adminSearchCasesGet(
       @RequestParam(required = false) String institutionId,
       @RequestParam(required = false) String classId,
-      @RequestParam(required = false) Integer caseNumber,
+      @RequestParam(required = false) Long caseNumber,
       @RequestParam(required = false) String applicantNationalId,
       @RequestParam(required = false) String identityType,
       @RequestParam(required = false) String caseStatus) {
@@ -409,7 +750,7 @@ public class ApplicationsController {
       @RequestParam(required = false) String applicationId,
       @RequestParam(required = false) String classId,
       @RequestParam(required = false) String applicantNationalId,
-      @RequestParam(required = false) Integer caseNumber,
+      @RequestParam(required = false) Long caseNumber,
       @RequestParam(required = false) String identityType) {
 
     // 基本驗證
@@ -501,4 +842,3 @@ public class ApplicationsController {
 
 
 }
-
