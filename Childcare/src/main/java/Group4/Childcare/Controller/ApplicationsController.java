@@ -53,7 +53,19 @@ public class ApplicationsController {
 
   @PutMapping("/{id}")
   public ResponseEntity<Applications> update(@PathVariable UUID id, @RequestBody Applications entity) {
-    return ResponseEntity.ok(service.update(id, entity));
+    Applications original = service.getById(id).orElseThrow();
+    // 只更新有傳的欄位（部分更新）
+    if (entity.getApplicationDate() != null) original.setApplicationDate(entity.getApplicationDate());
+    if (entity.getCaseNumber() != null) original.setCaseNumber(entity.getCaseNumber());
+    if (entity.getInstitutionID() != null) original.setInstitutionID(entity.getInstitutionID());
+    if (entity.getUserID() != null) original.setUserID(entity.getUserID());
+    if (entity.getIdentityType() != null) original.setIdentityType(entity.getIdentityType());
+    if (entity.getAttachmentPath() != null) original.setAttachmentPath(entity.getAttachmentPath());
+    if (entity.getAttachmentPath1() != null) original.setAttachmentPath1(entity.getAttachmentPath1());
+    if (entity.getAttachmentPath2() != null) original.setAttachmentPath2(entity.getAttachmentPath2());
+    if (entity.getAttachmentPath3() != null) original.setAttachmentPath3(entity.getAttachmentPath3());
+    // 其他欄位如有需要可依此類推
+    return ResponseEntity.ok(service.update(id, original));
   }
 
   @GetMapping("/application-status/{userID}")

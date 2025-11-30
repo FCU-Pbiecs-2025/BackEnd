@@ -718,5 +718,22 @@ public class ApplicationsJdbcRepository {
       return dto;
     }, userID.toString());
   }
-}
 
+  // 新增：更新 applications 表的四個附件欄位
+  public int updateAttachmentPaths(java.util.UUID applicationId, String path0, String path1, String path2, String path3) {
+    String sql = "UPDATE " + TABLE_NAME + " SET AttachmentPath = ?, AttachmentPath1 = ?, AttachmentPath2 = ?, AttachmentPath3 = ? WHERE ApplicationID = ?";
+    try {
+      return jdbcTemplate.update(sql,
+              path0,
+              path1,
+              path2,
+              path3,
+              applicationId != null ? applicationId.toString() : null
+      );
+    } catch (Exception ex) {
+      // 若更新失敗，回傳 0
+      return 0;
+    }
+  }
+
+}

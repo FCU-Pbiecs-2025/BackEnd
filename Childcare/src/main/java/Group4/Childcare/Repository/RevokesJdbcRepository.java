@@ -27,8 +27,10 @@ public class RevokesJdbcRepository {
                         "       c.[AbandonReason] " +
                         "FROM [dbo].[cancellation] c " +
                         "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
+                        "JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] " +
                         "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
                         "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
+                        "where ap.Status='撤銷申請審核中' "+
                         "ORDER BY c.[CancellationDate] DESC " +
                         "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -49,7 +51,7 @@ public class RevokesJdbcRepository {
     // New: total count for pagination
     public long countRevokedApplications() {
         // Counting cancellations is sufficient as each cancellation represents one revoked application
-        String sql = "SELECT COUNT(*) FROM [dbo].[cancellation]";
+        String sql = "SELECT COUNT(*) FROM [dbo].[cancellation] c JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] where ap.Status='撤銷申請審核中' ";
         Long count = jdbcTemplate.queryForObject(sql, Long.class);
         return count != null ? count : 0L;
     }
@@ -64,7 +66,7 @@ public class RevokesJdbcRepository {
             "FROM [dbo].[cancellation] c " +
             "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
             "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
-            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " );
+            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID]  JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] " );
         boolean hasWhere = false;
         if (cancellationID != null && !cancellationID.isEmpty()) {
             sql.append("WHERE c.[CancellationID] = ? ");
@@ -74,7 +76,7 @@ public class RevokesJdbcRepository {
             sql.append(hasWhere ? "AND " : "WHERE ");
             sql.append("c.[NationalID] = ? ");
         }
-        sql.append("ORDER BY c.[CancellationDate] DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        sql.append("and ap.Status='撤銷申請審核中'  ORDER BY c.[CancellationDate] DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
         // 準備參數
         java.util.List<Object> params = new java.util.ArrayList<>();
         if (cancellationID != null && !cancellationID.isEmpty()) params.add(cancellationID);
@@ -102,7 +104,7 @@ public class RevokesJdbcRepository {
             "SELECT COUNT(*) FROM [dbo].[cancellation] c " +
             "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
             "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
-            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " );
+            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID]" );
         boolean hasWhere = false;
         if (cancellationID != null && !cancellationID.isEmpty()) {
             sql.append("WHERE c.[CancellationID] = ? ");
@@ -112,6 +114,8 @@ public class RevokesJdbcRepository {
             sql.append(hasWhere ? "AND " : "WHERE ");
             sql.append("c.[NationalID] = ? ");
         }
+        sql.append("and ap.Status='撤銷申請審核中' ");
+
         java.util.List<Object> params = new java.util.ArrayList<>();
         if (cancellationID != null && !cancellationID.isEmpty()) params.add(cancellationID);
         if (nationalID != null && !nationalID.isEmpty()) params.add(nationalID);
