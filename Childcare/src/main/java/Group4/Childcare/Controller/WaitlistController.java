@@ -42,10 +42,7 @@ public class WaitlistController {
         try {
             UUID institutionId = request.getInstitutionId();
 
-            // 1. 重置所有候補順位（洗牌）
-            waitlistJdbcRepository.resetAllWaitlistOrders(institutionId);
-
-            // 2. 獲取機構總收托人數和目前就讀中人數
+            // 1. 獲取機構總收托人數和目前就讀中人數
             int totalCapacity = waitlistJdbcRepository.getTotalCapacity(institutionId);
             int currentStudents = waitlistJdbcRepository.getCurrentStudentsCount(institutionId);
             int availableSlots = totalCapacity - currentStudents;
@@ -59,34 +56,24 @@ public class WaitlistController {
                 return ResponseEntity.badRequest().body(errorResult);
             }
 
-            // 3. 計算法定序位名額（基於總容量的比例）
+            // 2. 計算法定序位名額（基於總容量的比例）
             int firstPriorityLegalQuota = (int) Math.floor(totalCapacity * 0.2);
             int secondPriorityLegalQuota = (int) Math.floor(totalCapacity * 0.1);
             int thirdPriorityLegalQuota = totalCapacity - firstPriorityLegalQuota - secondPriorityLegalQuota;
 
-            // 3.5. 統計機構內各序位已錄取人數
+            // 3. 統計機構內各序位已錄取人數
             Map<Integer, Integer> acceptedCountByPriority = waitlistJdbcRepository.getAcceptedCountByPriority(institutionId);
             int firstPriorityAcceptedCount = acceptedCountByPriority.get(1);
             int secondPriorityAcceptedCount = acceptedCountByPriority.get(2);
             int thirdPriorityAcceptedCount = acceptedCountByPriority.get(3);
 
-            // 3.6. 計算實際序位名額（法定名額 - 已錄取人數）
+            // 4. 計算實際序位名額（法定名額 - 已錄取人數）
             int firstPriorityQuota = Math.max(0, firstPriorityLegalQuota - firstPriorityAcceptedCount);
             int secondPriorityQuota = Math.max(0, secondPriorityLegalQuota - secondPriorityAcceptedCount);
             int thirdPriorityQuota = Math.max(0, thirdPriorityLegalQuota - thirdPriorityAcceptedCount);
 
-            // 檢查實際可錄取名額
-            int totalActualQuota = firstPriorityQuota + secondPriorityQuota + thirdPriorityQuota;
-            if (totalActualQuota <= 0) {
-                LotteryResult errorResult = new LotteryResult();
-                errorResult.setSuccess(false);
-                errorResult.setMessage(String.format("各序位名額已滿，無法進行抽籤。" +
-                    "第一序位：已錄取%d/%d，第二序位：已錄取%d/%d，第三序位：已錄取%d/%d",
-                    firstPriorityAcceptedCount, firstPriorityLegalQuota,
-                    secondPriorityAcceptedCount, secondPriorityLegalQuota,
-                    thirdPriorityAcceptedCount, thirdPriorityLegalQuota));
-                return ResponseEntity.badRequest().body(errorResult);
-            }
+            // 重置所有候補順位（洗牌）- 無論是否有名額都執行
+            waitlistJdbcRepository.resetAllWaitlistOrders(institutionId);
 
             // 4. 獲取所有申請人並按身分別分組
             Map<Integer, List<Map<String, Object>>> applicantsByPriority =
@@ -218,7 +205,7 @@ public class WaitlistController {
 
             // 第三序位未抽中者成為備取（記錄抽籤順序）
             for (Map<String, Object> applicant : priority3NotSelected) {
-                applicant.put("Status", "錄取候補中（備取）");
+                applicant.put("Status", "候補中");
                 applicant.put("ReviewDate", LocalDateTime.now());
                 applicant.put("LotteryOrder", lotteryOrder++);
                 waitlist.add(applicant);
@@ -293,7 +280,8 @@ public class WaitlistController {
         Object birthDateObj = applicant.get("BirthDate");
         if (birthDateObj == null) {
             // 無法確認年齡，無法分配班級，列入候補
-            applicant.put("Status", "錄取候補中（" + priorityType + "-無出生日期）");
+            applicant.put("Status", "候補中");
+            applicant.put("Reason", priorityType + "-無出生日期");
             applicant.put("ReviewDate", LocalDateTime.now());
             classFullWaitlist.add(applicant);
             return false;
@@ -311,7 +299,8 @@ public class WaitlistController {
 
         if (classId != null && waitlistJdbcRepository.hasClassCapacity(classId)) {
             // 有適合的班級且有空位，錄取
-            applicant.put("Status", "已錄取（" + priorityType + "）");
+            applicant.put("Status", "已錄取");
+            applicant.put("Reason", priorityType);
             applicant.put("ClassID", classId.toString());
             applicant.put("ReviewDate", LocalDateTime.now());
             acceptedList.add(applicant);
@@ -331,10 +320,11 @@ public class WaitlistController {
             return true;
         } else {
             // 班級已滿或無適合班級，列入候補
-            String statusDetail = classId == null ?
-                "錄取候補中（" + priorityType + "-無適合年齡班級）" :
-                "錄取候補中（" + priorityType + "-班級已滿）";
-            applicant.put("Status", statusDetail);
+            String reasonDetail = classId == null ?
+                priorityType + "-無適合年齡班級" :
+                priorityType + "-班級已滿";
+            applicant.put("Status", "候補中");
+            applicant.put("Reason", reasonDetail);
             applicant.put("ReviewDate", LocalDateTime.now());
             classFullWaitlist.add(applicant);
             return false;

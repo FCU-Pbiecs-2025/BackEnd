@@ -338,4 +338,70 @@ public class UsersController {
     return ResponseEntity.ok(dto);
   }
 
+  /**
+   * PUT /users/{id}/password
+   * 修改使用者密碼
+   * body 範例資料:
+   * {
+   *     "newPassword": "newPassword123"
+   * }
+   * @param id 使用者ID
+   * @param request 包含新密碼的請求
+   * @return 修改結果
+   */
+  @PutMapping("/{id}/password")
+  public ResponseEntity<Map<String, Object>> changePassword(@PathVariable UUID id, @RequestBody Map<String, String> request) {
+    Map<String, Object> result = new HashMap<>();
+
+    try {
+      String newPassword = request.get("newPassword");
+
+      // 驗證新密碼不為空
+      if (newPassword == null || newPassword.trim().isEmpty()) {
+        result.put("success", false);
+        result.put("message", "新密碼不能為空");
+        return ResponseEntity.badRequest().body(result);
+      }
+
+      // 驗證密碼長度
+      if (newPassword.length() < 6) {
+        result.put("success", false);
+        result.put("message", "密碼長度至少為 6 個字元");
+        return ResponseEntity.badRequest().body(result);
+      }
+
+      // 檢查使用者是否存在
+      Optional<Users> userOpt = usersService.getUserById(id);
+      if (userOpt.isEmpty()) {
+        result.put("success", false);
+        result.put("message", "使用者不存在");
+        return ResponseEntity.notFound().build();
+      }
+
+      Users user = userOpt.get();
+
+      // 檢查使用者權限是否為 admin (permissionType = 2)
+      if (user.getPermissionType() == null || user.getPermissionType() != 2) {
+        result.put("success", false);
+        result.put("message", "只有管理員可以修改密碼");
+        return ResponseEntity.status(403).body(result);
+      }
+
+      // 更新密碼 (這裡使用明文儲存，實際環境建議使用雜湊)
+      user.setPassword(newPassword.trim());
+      Users updatedUser = usersService.updateUser(id, user);
+
+      result.put("success", true);
+      result.put("message", "密碼修改成功");
+      return ResponseEntity.ok(result);
+
+    } catch (Exception e) {
+      System.err.println("Error in changePassword: " + e.getMessage());
+      e.printStackTrace();
+      result.put("success", false);
+      result.put("message", "密碼修改失敗，請稍後再試");
+      return ResponseEntity.status(500).body(result);
+    }
+  }
+
 }

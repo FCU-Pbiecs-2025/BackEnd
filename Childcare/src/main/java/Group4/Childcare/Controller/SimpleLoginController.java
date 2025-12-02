@@ -64,9 +64,21 @@ public class SimpleLoginController {
 
         // 登入成功
         Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("UserID", user.getUserID());
+        // Original (existing) PascalCase keys
+        userInfo.put("UserID", user.getUserID() != null ? user.getUserID().toString() : null);
         userInfo.put("PermissionType", user.getPermissionType());
         userInfo.put("Name", user.getName());
+        userInfo.put("Email", user.getEmail());
+        userInfo.put("PhoneNumber", user.getPhoneNumber());
+        userInfo.put("Account", user.getAccount());
+
+        // Also include normalized lowercase keys for frontend consumption
+        userInfo.put("userId", user.getUserID() != null ? user.getUserID().toString() : null);
+        userInfo.put("permissionType", user.getPermissionType());
+        userInfo.put("name", user.getName());
+        userInfo.put("email", user.getEmail());
+        userInfo.put("phone", user.getPhoneNumber());
+        userInfo.put("account", user.getAccount());
 
         result.put("success", true);
         result.put("message", "登入成功");

@@ -24,7 +24,7 @@ public class WaitlistJdbcRepository {
         StringBuilder sql = new StringBuilder("SELECT a.[ApplicationID], ap.[Name], ap.[BirthDate], a.[IdentityType], ap.[CurrentOrder] " +
                 "FROM [dbo].[applications] a " +
                 "LEFT JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] " +
-                "WHERE ap.[Status] = '錄取候補中' AND ap.[ParticipantType] = 0 ");
+                "WHERE ap.[Status] = '候補中' AND ap.[ParticipantType] = 0 ");
         // 動態組合條件
         List<Object> paramsList = new java.util.ArrayList<>();
         if (institutionId != null && !institutionId.trim().isEmpty()) {
@@ -74,7 +74,7 @@ public class WaitlistJdbcRepository {
                 "ap.CurrentOrder, ap.Status, a.IdentityType, ap.ClassID " +
                 "FROM application_participants ap " +
                 "LEFT JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
-                "WHERE a.InstitutionID = ? AND ap.ParticipantType = 0 AND ap.Status = '錄取候補中' " +
+                "WHERE a.InstitutionID = ? AND ap.ParticipantType = 0 AND ap.Status = '候補中' " +
                 "ORDER BY ap.CurrentOrder ASC";
         return jdbcTemplate.queryForList(sql, institutionId.toString());
     }
@@ -137,7 +137,7 @@ public class WaitlistJdbcRepository {
                 "FROM application_participants ap " +
                 "LEFT JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
                 "WHERE a.InstitutionID = ? AND ap.ParticipantType = 0 " +
-                "AND ap.Status IN ('錄取候補中', '待審核', '審核通過') " +
+                "AND ap.Status = '候補中' " +
                 "ORDER BY a.IdentityType, ap.CurrentOrder";
 
         List<Map<String, Object>> allApplicants = jdbcTemplate.queryForList(sql, institutionId.toString());
@@ -173,7 +173,7 @@ public class WaitlistJdbcRepository {
                 "FROM application_participants ap " +
                 "LEFT JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
                 "WHERE a.InstitutionID = ? AND ap.ParticipantType = 0 " +
-                "AND ap.Status IN ('錄取候補中', '待審核', '審核通過')";
+                "AND ap.Status = '候補中'";
         jdbcTemplate.update(sql, institutionId.toString());
     }
 
@@ -270,7 +270,7 @@ public class WaitlistJdbcRepository {
                 int currentStudents = ((Number) currentStudentsObj).intValue();
 
                 // 檢查年齡是否符合且班級有空位
-                // 範例：幼童20個月，小班MinAge=12, MaxAge=24 → 12 <= 20 < 24 ✅
+                // 範例：幼童20個月，小班MinAge=12, MaxAge=24 → 12 <= 20 < 24
                 if (ageInMonths >= minAge && ageInMonths < maxAge && currentStudents < capacity) {
                     Object classIdObj = classInfo.get("ClassID");
                     if (classIdObj != null) {
@@ -348,7 +348,7 @@ public class WaitlistJdbcRepository {
                 "FROM application_participants ap " +
                 "LEFT JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
                 "WHERE a.InstitutionID = ? AND ap.ParticipantType = 0 " +
-                "AND ap.CurrentOrder < ? AND ap.Status = '錄取候補中'";
+                "AND ap.CurrentOrder < ? AND ap.Status = '候補中'";
         return jdbcTemplate.queryForList(sql, institutionId.toString(), admittedOrder);
     }
 }
