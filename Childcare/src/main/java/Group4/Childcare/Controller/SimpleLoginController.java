@@ -79,6 +79,7 @@ public class SimpleLoginController {
         userInfo.put("email", user.getEmail());
         userInfo.put("phone", user.getPhoneNumber());
         userInfo.put("account", user.getAccount());
+        userInfo.put("FamilyInfoID", user.getFamilyInfoID());
 
         result.put("success", true);
         result.put("message", "登入成功");
