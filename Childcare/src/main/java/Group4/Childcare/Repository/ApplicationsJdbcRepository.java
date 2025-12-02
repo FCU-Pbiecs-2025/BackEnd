@@ -133,13 +133,13 @@ public class ApplicationsJdbcRepository {
     }).stream().findFirst();
   }
 
-  public Optional<ApplicationCaseDTO> findApplicationCaseById(UUID id, String nationalID) {
+  public Optional<ApplicationCaseDTO> findApplicationCaseById(UUID id, String nationalID, UUID participantID) {
     String sql = "SELECT a.ApplicationID, a.ApplicationDate, i.InstitutionName, " +
             // 加入身分別欄位
             "a.IdentityType, " +
             // 從 applications 帶出四個附件欄位
             "a.AttachmentPath, a.AttachmentPath1, a.AttachmentPath2, a.AttachmentPath3, " +
-            "ap.ParticipantType, ap.NationalID, ap.Name, ap.Gender, ap.RelationShip, ap.Occupation, " +
+            "ap.ParticipantID, ap.ParticipantType, ap.NationalID, ap.Name, ap.Gender, ap.RelationShip, ap.Occupation, " +
             "ap.PhoneNumber, ap.HouseholdAddress, ap.MailingAddress, ap.Email, ap.BirthDate, " +
             "ap.IsSuspended, ap.SuspendEnd, ap.CurrentOrder, ap.Status, ap.Reason, ap.ClassID, ap.ReviewDate " +
             "FROM applications a " +
@@ -192,6 +192,15 @@ public class ApplicationsJdbcRepository {
         } else if (ptObj != null) {
           try { int v = rs.getInt("ParticipantType"); isParent = (v == 2); } catch (Exception ex) { isParent = null; }
         }
+
+        // 設置 ParticipantID
+        try {
+          String participantIdStr = rs.getString("ParticipantID");
+          if (participantIdStr != null && !participantIdStr.isEmpty()) {
+            p.participantID = UUID.fromString(participantIdStr);
+          }
+        } catch (Exception ex) { p.participantID = null; }
+
         p.participantType = (isParent != null && isParent) ? "家長" : "幼兒";
         p.nationalID = rs.getString("NationalID");
         p.name = rs.getString("Name");
@@ -216,11 +225,11 @@ public class ApplicationsJdbcRepository {
         ApplicationCaseDTO dto = (ApplicationCaseDTO) resultMap.get("header");
 
         if (isParent != null && isParent) {
-          // Parents 總是添加，不受 nationalID 過濾限制
+          // Parents 總是添加，不受過濾限制
           dto.parents.add(p);
         } else {
-          // Children 只在符合 nationalID 過濾或沒有過濾時才添加
-          boolean shouldAdd = (nationalID == null || nationalID.isEmpty() || nationalID.equals(p.nationalID));
+          // Children 只在符合 participantID 過濾或沒有過濾時才添加
+          boolean shouldAdd = (participantID == null || participantID.toString().isEmpty() || participantID.equals(p.participantID));
           if (shouldAdd) {
             dto.children.add(p);
           }
@@ -318,23 +327,23 @@ public class ApplicationsJdbcRepository {
   public List<ApplicationSummaryWithDetailsDTO> findSummariesWithOffset(int offset, int limit) {
     // 以 application_participants 為主體，每一列代表一個幼兒參與者
     String sql =
-        "SELECT " +
-        "  a.ApplicationID, " +
-        "  a.ApplicationDate, " +
-        "  u.Name AS Name, " +                    // 申請人名稱（users.Name）\n" +
-        "  i.InstitutionName AS InstitutionName, " +
-        "  ap.Status, " +
-        "  a.InstitutionID, " +
-        "  ap.NationalID AS NationalID, " +       // 幼兒身分證\n" +
-        "  ap.ParticipantType AS ParticipantType, " +
-        "  ap.Name AS PName " +                   // 幼兒姓名\n" +
-        "FROM application_participants ap " +
-        "JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
-        "LEFT JOIN users u ON a.UserID = u.UserID " +
-        "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
-        "WHERE ap.ParticipantType = 0 " +         // 只取幼兒\n" +
-        "ORDER BY a.ApplicationDate DESC, ap.CurrentOrder ASC " +
-        "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            "SELECT " +
+                    "  a.ApplicationID, " +
+                    "  a.ApplicationDate, " +
+                    "  u.Name AS Name, " +                    // 申請人名稱（users.Name）\n" +
+                    "  i.InstitutionName AS InstitutionName, " +
+                    "  ap.Status, " +
+                    "  a.InstitutionID, " +
+                    "  ap.NationalID AS NationalID, " +       // 幼兒身分證\n" +
+                    "  ap.ParticipantType AS ParticipantType, " +
+                    "  ap.Name AS PName " +                   // 幼兒姓名\n" +
+                    "FROM application_participants ap " +
+                    "JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
+                    "LEFT JOIN users u ON a.UserID = u.UserID " +
+                    "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
+                    "WHERE ap.ParticipantType = 0 " +         // 只取幼兒\n" +
+                    "ORDER BY a.ApplicationDate DESC, ap.CurrentOrder ASC " +
+                    "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
     try {
       return jdbcTemplate.query(sql, DETAILS_ROW_MAPPER, offset, limit);
@@ -393,28 +402,29 @@ public class ApplicationsJdbcRepository {
    * @return List<CaseOffsetListDTO>
    */
   public List<CaseOffsetListDTO> findCaseListWithOffset(int offset, int limit, String status, UUID institutionId,
-                                                         UUID applicationId, UUID classId, String applicantNationalId,
-                                                         Long caseNumber, String identityType) {
+                                                        UUID applicationId, UUID classId, String applicantNationalId,
+                                                        Long caseNumber, String identityType) {
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT ")
-       .append("a.CaseNumber, ")
-       .append("a.ApplicationDate, ")
-       .append("i.InstitutionName, ")
-       .append("ap.NationalID, ")
-       .append("ap.Name, ")
-       .append("ap.BirthDate, ")
-       .append("ap.CurrentOrder, ")
-       .append("ap.Status, ")
-       .append("c.ClassName, ")
-       .append("u.NationalID AS ApplicantNationalID, ")
-       .append("u.Name AS ApplicantNationalName, ")
-       .append("a.IdentityType ")
-       .append("FROM applications a ")
-       .append("LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID ")
-       .append("LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID ")
-       .append("LEFT JOIN classes c ON ap.ClassID = c.ClassID ")
-       .append("LEFT JOIN users u ON a.UserID = u.UserID ")
-       .append("WHERE ap.ParticipantType = 0 "); // 0 = 幼兒
+            .append("ap.ParticipantID, ")
+            .append("a.CaseNumber, ")
+            .append("a.ApplicationDate, ")
+            .append("i.InstitutionName, ")
+            .append("ap.NationalID, ")
+            .append("ap.Name, ")
+            .append("ap.BirthDate, ")
+            .append("ap.CurrentOrder, ")
+            .append("ap.Status, ")
+            .append("c.ClassName, ")
+            .append("u.NationalID AS ApplicantNationalID, ")
+            .append("u.Name AS ApplicantNationalName, ")
+            .append("a.IdentityType ")
+            .append("FROM applications a ")
+            .append("LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID ")
+            .append("LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID ")
+            .append("LEFT JOIN classes c ON ap.ClassID = c.ClassID ")
+            .append("LEFT JOIN users u ON a.UserID = u.UserID ")
+            .append("WHERE ap.ParticipantType = 0 "); // 0 = 幼兒
 
     java.util.List<Object> params = new java.util.ArrayList<>();
 
@@ -454,7 +464,7 @@ public class ApplicationsJdbcRepository {
     }
 
     sql.append("ORDER BY a.ApplicationDate DESC ")
-       .append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            .append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
 
     // 將分頁參數加入預備語句參數列表
     params.add(offset);
@@ -462,6 +472,19 @@ public class ApplicationsJdbcRepository {
 
     RowMapper<CaseOffsetListDTO> rowMapper = (rs, rowNum) -> {
       CaseOffsetListDTO dto = new CaseOffsetListDTO();
+
+      // 設置 ParticipantID (application_participants.ParticipantID)
+      try {
+        Object participantIdObj = rs.getObject("ParticipantID");
+        if (participantIdObj instanceof java.util.UUID) {
+          dto.setParticipantID((java.util.UUID) participantIdObj);
+        } else if (participantIdObj != null) {
+          dto.setParticipantID(java.util.UUID.fromString(rs.getString("ParticipantID")));
+        }
+      } catch (Exception e) {
+        dto.setParticipantID(null);
+      }
+
       dto.setCaseNumber(rs.getLong("CaseNumber"));
       if (rs.getDate("ApplicationDate") != null) {
         dto.setApplicationDate(rs.getDate("ApplicationDate").toLocalDate());
@@ -509,11 +532,11 @@ public class ApplicationsJdbcRepository {
                             String applicantNationalId, Long caseNumber, String identityType) {
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT COUNT(DISTINCT a.ApplicationID) ")
-       .append("FROM applications a ")
-       .append("LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID ")
-       .append("LEFT JOIN classes c ON ap.ClassID = c.ClassID ")
-       .append("LEFT JOIN users u ON a.UserID = u.UserID ")
-       .append("WHERE ap.ParticipantType = 0 "); // 0 = 幼兒
+            .append("FROM applications a ")
+            .append("LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID ")
+            .append("LEFT JOIN classes c ON ap.ClassID = c.ClassID ")
+            .append("LEFT JOIN users u ON a.UserID = u.UserID ")
+            .append("WHERE ap.ParticipantType = 0 "); // 0 = 幼兒
 
     java.util.List<Object> params = new java.util.ArrayList<>();
 
@@ -568,6 +591,7 @@ public class ApplicationsJdbcRepository {
             "a.IdentityType, " +
             "a.InstitutionID, " +
             "a.ApplicationID, " +
+            "a.UserID, " +
             "i.InstitutionName, " +
             "ap.Status, " +
             "ap.CurrentOrder, " +
@@ -581,6 +605,15 @@ public class ApplicationsJdbcRepository {
             "ap.Email, " +
             "ap.PhoneNumber, " +
             "ap.NationalID AS ParticipantNationalID, " +
+            // 新增：從 users 表帶出申請人資料
+            "u.UserID AS ApplicantUserID, " +
+            "u.Name AS ApplicantName, " +
+            "u.Gender AS ApplicantGender, " +
+            "u.BirthDate AS ApplicantBirthDate, " +
+            "u.MailingAddress AS ApplicantMailingAddress, " +
+            "u.Email AS ApplicantEmail, " +
+            "u.PhoneNumber AS ApplicantPhoneNumber, " +
+            "u.NationalID AS ApplicantNationalID, " +
             // 新增：從 applications 表帶出四個附件欄位
             "a.AttachmentPath, " +
             "a.AttachmentPath1, " +
@@ -590,6 +623,7 @@ public class ApplicationsJdbcRepository {
             "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
             "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
             "LEFT JOIN classes c ON ap.ClassID = c.ClassID " +
+            "LEFT JOIN users u ON a.UserID = u.UserID " +
             "WHERE ap.NationalID = ? ";
 
     return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -622,6 +656,12 @@ public class ApplicationsJdbcRepository {
       dto.setInstitutionName(rs.getString("InstitutionName"));
 
       // 來自 application_participants 表
+      try {
+        String participantIdStr = rs.getString("ParticipantID");
+        if (participantIdStr != null && !participantIdStr.isEmpty()) {
+          dto.setParticipantID(java.util.UUID.fromString(participantIdStr));
+        }
+      } catch (Exception ex) { }
 
       try { Object currentOrder = rs.getObject("CurrentOrder"); if (currentOrder != null) dto.setCurrentOrder(((Number) currentOrder).intValue()); } catch (Exception ex) { }
 
@@ -632,32 +672,32 @@ public class ApplicationsJdbcRepository {
       // 來自 classes 表
       dto.setSelectedClass(rs.getString("ClassName"));
 
-      // 創建並設置申請人信息 (UserSimpleDTO) - 來自 application_participants 表
+      // 創建並設置申請人信息 (UserSimpleDTO) - 來自 users 表
       UserSimpleDTO userDTO = new UserSimpleDTO();
       try {
-        String participantIdStr = rs.getString("ParticipantID");
-        if (participantIdStr != null && !participantIdStr.isEmpty()) {
-          userDTO.setUserID(participantIdStr);
+        String applicantUserIdStr = rs.getString("ApplicantUserID");
+        if (applicantUserIdStr != null && !applicantUserIdStr.isEmpty()) {
+          userDTO.setUserID(applicantUserIdStr);
         }
       } catch (Exception ex) { }
 
-      userDTO.setName(rs.getString("Name"));
+      userDTO.setName(rs.getString("ApplicantName"));
 
       try {
-        Boolean genderVal = rs.getBoolean("Gender");
+        Boolean genderVal = rs.getBoolean("ApplicantGender");
         if (!rs.wasNull()) {
           userDTO.setGender(genderVal ? "M" : "F");
         }
       } catch (Exception ex) { }
 
-      if (rs.getDate("BirthDate") != null) {
-        userDTO.setBirthDate(rs.getDate("BirthDate").toString());
+      if (rs.getDate("ApplicantBirthDate") != null) {
+        userDTO.setBirthDate(rs.getDate("ApplicantBirthDate").toString());
       }
 
-      userDTO.setMailingAddress(rs.getString("MailingAddress"));
-      userDTO.setEmail(rs.getString("Email"));
-      userDTO.setPhoneNumber(rs.getString("PhoneNumber"));
-      userDTO.setNationalID(rs.getString("ParticipantNationalID"));
+      userDTO.setMailingAddress(rs.getString("ApplicantMailingAddress"));
+      userDTO.setEmail(rs.getString("ApplicantEmail"));
+      userDTO.setPhoneNumber(rs.getString("ApplicantPhoneNumber"));
+      userDTO.setNationalID(rs.getString("ApplicantNationalID"));
 
       dto.setUser(userDTO);
 
@@ -679,25 +719,25 @@ public class ApplicationsJdbcRepository {
    */
   public List<UserApplicationDetailsDTO> findUserApplicationDetails(UUID userID) {
     String sql = "SELECT " +
-        "a.ApplicationID, " +
-        "a.ApplicationDate, " +
-        "a.InstitutionID, " +
+            "a.ApplicationID, " +
+            "a.ApplicationDate, " +
+            "a.InstitutionID, " +
             "i.InstitutionName, " +
-        "ap.Name as childname, " +
-        "ap.BirthDate, " +
-        "ap.Status, " +
+            "ap.Name as childname, " +
+            "ap.BirthDate, " +
+            "ap.Status, " +
             "ap.CurrentOrder, " +
             "ap.NationalID as childNationalID, " +
             "ap.Reason, " +
             "c.CancellationID, " +
-        "u.Name as username " +
-        "FROM applications a " +
-        "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
-        "LEFT JOIN users u ON a.UserID = u.UserID " +
+            "u.Name as username " +
+            "FROM applications a " +
+            "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
+            "LEFT JOIN users u ON a.UserID = u.UserID " +
             "LEFT JOIN cancellation c ON  c.ApplicationID = a.ApplicationID " +
             "LEFT JOIN  institutions i ON  i.InstitutionID = a.InstitutionID " +
-        "WHERE a.UserID = ?  and ap.ParticipantType=0" +
-        "ORDER BY a.ApplicationDate DESC";
+            "WHERE a.UserID = ?  and ap.ParticipantType=0" +
+            "ORDER BY a.ApplicationDate DESC";
 
     return jdbcTemplate.query(sql, (rs, rowNum) -> {
       UserApplicationDetailsDTO dto = new UserApplicationDetailsDTO();
@@ -719,6 +759,242 @@ public class ApplicationsJdbcRepository {
     }, userID.toString());
   }
 
+  /**
+   * 根據 ParticipantID 查詢案件詳情
+   * @param participantID 參與者ID（幼兒）
+   * @return CaseEditUpdateDTO（包含該幼兒的案件信息）或 Optional.empty()
+   */
+  public Optional<CaseEditUpdateDTO> findCaseByParticipantId(UUID participantID) {
+    String sql = "SELECT DISTINCT " +
+            "a.CaseNumber, " +
+            "a.ApplicationDate, " +
+            "a.IdentityType, " +
+            "a.InstitutionID, " +
+            "a.ApplicationID, " +
+            "i.InstitutionName, " +
+            "ap.Status, " +
+            "ap.CurrentOrder, " +
+            "ap.ReviewDate, " +
+            "c.ClassName, " +
+            "ap.ParticipantID, " +
+            "ap.Name, " +
+            "ap.Gender, " +
+            "ap.BirthDate, " +
+            "ap.MailingAddress, " +
+            "ap.Email, " +
+            "ap.PhoneNumber, " +
+            "ap.NationalID AS ParticipantNationalID, " +
+            "a.AttachmentPath, " +
+            "a.AttachmentPath1, " +
+            "a.AttachmentPath2, " +
+            "a.AttachmentPath3, " +
+            "u.UserID AS ApplicantUserID, " +
+            "u.Name AS ApplicantName, " +
+            "u.Gender AS ApplicantGender, " +
+            "u.BirthDate AS ApplicantBirthDate, " +
+            "u.MailingAddress AS ApplicantMailingAddress, " +
+            "u.Email AS ApplicantEmail, " +
+            "u.PhoneNumber AS ApplicantPhoneNumber, " +
+            "u.NationalID AS ApplicantNationalID " +
+            "FROM applications a " +
+            "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
+            "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
+            "LEFT JOIN classes c ON ap.ClassID = c.ClassID " +
+            "LEFT JOIN users u ON a.UserID = u.UserID " +
+            "WHERE ap.ParticipantID = ? ";
+
+    return jdbcTemplate.query(sql, (rs, rowNum) -> {
+      CaseEditUpdateDTO dto = new CaseEditUpdateDTO();
+
+      try { Object caseNum = rs.getObject("CaseNumber"); if (caseNum != null) dto.setCaseNumber(((Number) caseNum).longValue()); } catch (Exception ex) { }
+
+      if (rs.getDate("ApplicationDate") != null) {
+        dto.setApplyDate(rs.getDate("ApplicationDate").toLocalDate());
+      }
+
+      try { Object identityType = rs.getObject("IdentityType"); if (identityType != null) dto.setIdentityType(((Number) identityType).intValue()); } catch (Exception ex) { }
+
+      try {
+        String institutionIdStr = rs.getString("InstitutionID");
+        if (institutionIdStr != null && !institutionIdStr.isEmpty()) {
+          dto.setInstitutionId(java.util.UUID.fromString(institutionIdStr));
+        }
+      } catch (Exception ex) { }
+
+      try {
+        String appIdStr = rs.getString("ApplicationID");
+        if (appIdStr != null && !appIdStr.isEmpty()) {
+          dto.setApplicationID(java.util.UUID.fromString(appIdStr));
+        }
+      } catch (Exception ex) { }
+
+      // 設置 ParticipantID
+      try {
+        String participantIdStr = rs.getString("ParticipantID");
+        if (participantIdStr != null && !participantIdStr.isEmpty()) {
+          dto.setParticipantID(java.util.UUID.fromString(participantIdStr));
+        }
+      } catch (Exception ex) { }
+
+      dto.setInstitutionName(rs.getString("InstitutionName"));
+
+      try { Object currentOrder = rs.getObject("CurrentOrder"); if (currentOrder != null) dto.setCurrentOrder(((Number) currentOrder).intValue()); } catch (Exception ex) { }
+
+      if (rs.getTimestamp("ReviewDate") != null) {
+        dto.setReviewDate(rs.getTimestamp("ReviewDate").toLocalDateTime());
+      }
+
+      dto.setSelectedClass(rs.getString("ClassName"));
+
+      // 創建並設置申請人信息 (UserSimpleDTO) - 來自 users 表
+      UserSimpleDTO userDTO = new UserSimpleDTO();
+      try {
+        String applicantUserIdStr = rs.getString("ApplicantUserID");
+        if (applicantUserIdStr != null && !applicantUserIdStr.isEmpty()) {
+          userDTO.setUserID(applicantUserIdStr);
+        }
+      } catch (Exception ex) { }
+
+      userDTO.setName(rs.getString("ApplicantName"));
+
+      try {
+        Boolean genderVal = rs.getBoolean("ApplicantGender");
+        if (!rs.wasNull()) {
+          userDTO.setGender(genderVal ? "M" : "F");
+        }
+      } catch (Exception ex) { }
+
+      if (rs.getDate("ApplicantBirthDate") != null) {
+        userDTO.setBirthDate(rs.getDate("ApplicantBirthDate").toString());
+      }
+
+      userDTO.setMailingAddress(rs.getString("ApplicantMailingAddress"));
+      userDTO.setEmail(rs.getString("ApplicantEmail"));
+      userDTO.setPhoneNumber(rs.getString("ApplicantPhoneNumber"));
+      userDTO.setNationalID(rs.getString("ApplicantNationalID"));
+
+      dto.setUser(userDTO);
+
+      // 來自 applications 表：附件欄位
+      try { dto.setAttachmentPath(rs.getString("AttachmentPath")); } catch (Exception ex) { }
+      try { dto.setAttachmentPath1(rs.getString("AttachmentPath1")); } catch (Exception ex) { }
+      try { dto.setAttachmentPath2(rs.getString("AttachmentPath2")); } catch (Exception ex) { }
+      try { dto.setAttachmentPath3(rs.getString("AttachmentPath3")); } catch (Exception ex) { }
+
+      return dto;
+    }, participantID.toString()).stream().findFirst();
+  }
+
+  /**
+   * 根據 ParticipantID 查詢該幼兒在案件中的詳細信息（包括所有參與者）
+   * @param participantID 參與者ID
+   * @return ApplicationCaseDTO 包含該案件的所有參與者信息
+   */
+  public Optional<ApplicationCaseDTO> findApplicationCaseByParticipantId(UUID participantID) {
+    String sql = "SELECT a.ApplicationID, a.ApplicationDate, i.InstitutionName, " +
+            "a.IdentityType, " +
+            "a.AttachmentPath, a.AttachmentPath1, a.AttachmentPath2, a.AttachmentPath3, " +
+            "ap.ParticipantID, ap.ParticipantType, ap.NationalID, ap.Name, ap.Gender, ap.RelationShip, ap.Occupation, " +
+            "ap.PhoneNumber, ap.HouseholdAddress, ap.MailingAddress, ap.Email, ap.BirthDate, " +
+            "ap.IsSuspended, ap.SuspendEnd, ap.CurrentOrder, ap.Status, ap.Reason, ap.ClassID, ap.ReviewDate " +
+            "FROM applications a " +
+            "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
+            "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
+            "WHERE a.ApplicationID = (SELECT ApplicationID FROM application_participants WHERE ParticipantID = ?) " +
+            "ORDER BY ap.CurrentOrder";
+
+    java.util.Map<String, Object> resultMap = new java.util.HashMap<>();
+
+    jdbcTemplate.query(sql, (rs, rowNum) -> {
+      if (!resultMap.containsKey("header")) {
+        ApplicationCaseDTO dto = new ApplicationCaseDTO();
+        if (rs.getString("ApplicationID") != null) {
+          dto.applicationId = UUID.fromString(rs.getString("ApplicationID"));
+        }
+        if (rs.getDate("ApplicationDate") != null) {
+          dto.applicationDate = rs.getDate("ApplicationDate").toLocalDate();
+        }
+        dto.institutionName = rs.getString("InstitutionName");
+        dto.parents = new java.util.ArrayList<>();
+        dto.children = new java.util.ArrayList<>();
+
+        try {
+          Object idTypeObj = rs.getObject("IdentityType");
+          if (idTypeObj != null) {
+            dto.identityType = ((Number) idTypeObj).byteValue();
+          }
+        } catch (Exception ex) {
+          dto.identityType = null;
+        }
+
+        try { dto.attachmentPath = rs.getString("AttachmentPath"); } catch (Exception ex) { dto.attachmentPath = null; }
+        try { dto.attachmentPath1 = rs.getString("AttachmentPath1"); } catch (Exception ex) { dto.attachmentPath1 = null; }
+        try { dto.attachmentPath2 = rs.getString("AttachmentPath2"); } catch (Exception ex) { dto.attachmentPath2 = null; }
+        try { dto.attachmentPath3 = rs.getString("AttachmentPath3"); } catch (Exception ex) { dto.attachmentPath3 = null; }
+
+        resultMap.put("header", dto);
+      }
+
+      if (rs.getString("NationalID") != null) {
+        ApplicationParticipantDTO p = new ApplicationParticipantDTO();
+        Object ptObj = null;
+        try { ptObj = rs.getObject("ParticipantType"); } catch (Exception ex) { ptObj = null; }
+        Boolean isParent = null;
+        if (ptObj instanceof Boolean) {
+          try { isParent = rs.getBoolean("ParticipantType"); } catch (Exception ex) { isParent = null; }
+        } else if (ptObj != null) {
+          try { int v = rs.getInt("ParticipantType"); isParent = (v == 2); } catch (Exception ex) { isParent = null; }
+        }
+
+        // 設置 ParticipantID
+        try {
+          String participantIdStr = rs.getString("ParticipantID");
+          if (participantIdStr != null && !participantIdStr.isEmpty()) {
+            p.participantID = UUID.fromString(participantIdStr);
+          }
+        } catch (Exception ex) { p.participantID = null; }
+
+        p.participantType = (isParent != null && isParent) ? "家長" : "幼兒";
+        p.nationalID = rs.getString("NationalID");
+        p.name = rs.getString("Name");
+        try { Object gObj = rs.getObject("Gender"); if (gObj != null) { p.gender = rs.getBoolean("Gender") ? "男" : "女"; } else { p.gender = null; } } catch (Exception ex) { p.gender = null; }
+        p.relationShip = rs.getString("RelationShip");
+        p.occupation = rs.getString("Occupation");
+        p.phoneNumber = rs.getString("PhoneNumber");
+        p.householdAddress = rs.getString("HouseholdAddress");
+        p.mailingAddress = rs.getString("MailingAddress");
+        p.email = rs.getString("Email");
+        if (rs.getDate("BirthDate") != null) p.birthDate = rs.getDate("BirthDate").toString();
+        try { Object susp = rs.getObject("IsSuspended"); if (susp != null) p.isSuspended = rs.getBoolean("IsSuspended"); else p.isSuspended = null; } catch (Exception ex) { p.isSuspended = null; }
+        if (rs.getDate("SuspendEnd") != null) p.suspendEnd = rs.getDate("SuspendEnd").toString();
+        try { Object co = rs.getObject("CurrentOrder"); if (co != null) p.currentOrder = rs.getInt("CurrentOrder"); else p.currentOrder = null; } catch (Exception ex) { p.currentOrder = null; }
+        p.status = rs.getString("Status");
+        p.reason = rs.getString("Reason");
+        p.classID = rs.getString("ClassID");
+        if (rs.getTimestamp("ReviewDate") != null) {
+          p.reviewDate = rs.getTimestamp("ReviewDate").toLocalDateTime();
+        }
+
+        ApplicationCaseDTO dto = (ApplicationCaseDTO) resultMap.get("header");
+
+        if (isParent != null && isParent) {
+          dto.parents.add(p);
+        } else {
+          dto.children.add(p);
+        }
+      }
+
+      return null;
+    }, participantID.toString());
+
+    if (!resultMap.containsKey("header")) {
+      return Optional.empty();
+    }
+
+    ApplicationCaseDTO dto = (ApplicationCaseDTO) resultMap.get("header");
+    return Optional.of(dto);
+  }
+
   // 新增：更新 applications 表的四個附件欄位
   public int updateAttachmentPaths(java.util.UUID applicationId, String path0, String path1, String path2, String path3) {
     String sql = "UPDATE " + TABLE_NAME + " SET AttachmentPath = ?, AttachmentPath1 = ?, AttachmentPath2 = ?, AttachmentPath3 = ? WHERE ApplicationID = ?";
@@ -735,5 +1011,4 @@ public class ApplicationsJdbcRepository {
       return 0;
     }
   }
-
 }

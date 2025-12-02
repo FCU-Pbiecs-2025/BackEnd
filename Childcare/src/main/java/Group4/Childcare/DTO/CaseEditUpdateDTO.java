@@ -53,9 +53,13 @@ public class CaseEditUpdateDTO {
   @JsonProperty("applicationID")
   private UUID applicationID;
 
+  /** 參與者ID (application_participants.ParticipantID) - 用於篩選幼兒 */
+  @JsonProperty("participantID")
+  private UUID participantID;
+
   /** 申請人信息 (users model) */
-  @JsonProperty("User")
-  private UserSimpleDTO User;
+  @JsonProperty("user")
+  private UserSimpleDTO user;
 
   /** 家長信息陣列 */
   @JsonProperty("parents")

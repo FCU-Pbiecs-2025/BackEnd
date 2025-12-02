@@ -13,7 +13,8 @@ import java.util.UUID;
 public class CaseOffsetListDTO {
   // 案件編號 (applications.CaseNumber)
   private Long caseNumber;
-
+  // 幼兒ParticipantID (application_participants.ParticipantID)
+  private UUID ParticipantID;
   // 聲請日期 (applications.ApplicationDate)
   private LocalDate applicationDate;
 

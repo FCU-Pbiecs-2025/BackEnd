@@ -118,8 +118,8 @@ public class ApplicationsService {
 
   // JDBC 方式查詢單一個案 - changed to return ApplicationCaseDTO
   public Optional<ApplicationCaseDTO> getApplicationByIdJdbc(UUID id, String nationalID) {
-        return applicationsJdbcRepository.findApplicationCaseById(id, nationalID);
-    }
+    return applicationsJdbcRepository.findApplicationCaseById(id, nationalID, null);
+  }
 
   // Update single participant's status and reason, optionally set reviewDate
   public void updateParticipantStatusReason(UUID id, String nationalID, String status, String reason, java.time.LocalDateTime reviewDate) {
@@ -145,11 +145,11 @@ public class ApplicationsService {
    * @return List<CaseOffsetListDTO>
    */
   public List<CaseOffsetListDTO> getCaseListWithOffset(int offset, int limit, String status, UUID institutionId,
-                                                        UUID applicationId, UUID classId, String applicantNationalId,
-                                                        Long caseNumber, String identityType) {
+                                                       UUID applicationId, UUID classId, String applicantNationalId,
+                                                       Long caseNumber, String identityType) {
     return applicationsJdbcRepository.findCaseListWithOffset(offset, limit, status, institutionId,
-                                                             applicationId, classId, applicantNationalId,
-                                                             caseNumber, identityType);
+            applicationId, classId, applicantNationalId,
+            caseNumber, identityType);
   }
 
   /**
@@ -166,7 +166,7 @@ public class ApplicationsService {
   public long countCaseList(String status, UUID institutionId, UUID applicationId, UUID classId,
                             String applicantNationalId, Long caseNumber, String identityType) {
     return applicationsJdbcRepository.countCaseList(status, institutionId, applicationId, classId,
-                                                    applicantNationalId, caseNumber, identityType);
+            applicantNationalId, caseNumber, identityType);
   }
 
   /**
@@ -204,7 +204,7 @@ public class ApplicationsService {
     }
 
     // 查詢該案件的所有參與者（家長和幼兒）
-    Optional<ApplicationCaseDTO> caseDto = applicationsJdbcRepository.findApplicationCaseById(result.getApplicationID(), childrenNationalID);
+    Optional<ApplicationCaseDTO> caseDto = applicationsJdbcRepository.findApplicationCaseById(result.getApplicationID(), childrenNationalID, result.getParticipantID());
     if (caseDto.isPresent()) {
       ApplicationCaseDTO applicationCase = caseDto.get();
       result.setParents(applicationCase.parents);
@@ -223,6 +223,50 @@ public class ApplicationsService {
    */
   public List<UserApplicationDetailsDTO> getUserApplicationDetails(UUID userID) {
     return applicationsJdbcRepository.findUserApplicationDetails(userID);
+  }
+
+  /**
+   * 根據 ParticipantID 查詢案件並自動讀取檔案列表
+   * @param participantID 參與者ID（幼兒）
+   * @return CaseEditUpdateDTO（包含檔案列表和參與者信息）或 Optional.empty()
+   */
+  public Optional<CaseEditUpdateDTO> getCaseByParticipantId(UUID participantID) {
+    // 根據 ParticipantID 直接查詢案件信息
+    Optional<CaseEditUpdateDTO> resultOpt = applicationsJdbcRepository.findCaseByParticipantId(participantID);
+
+    if (resultOpt.isEmpty()) {
+      return Optional.empty();
+    }
+
+    CaseEditUpdateDTO result = resultOpt.get();
+
+    // 自動讀取檔案列表並設置到四個路徑字段
+    if (result.getApplicationID() != null) {
+      List<String> files = fileService.getFilesByApplicationId(result.getApplicationID());
+      // 將檔案列表對應到 attachmentPath, attachmentPath1, attachmentPath2, attachmentPath3
+      if (files.size() > 0) {
+        result.setAttachmentPath(files.get(0));
+      }
+      if (files.size() > 1) {
+        result.setAttachmentPath1(files.get(1));
+      }
+      if (files.size() > 2) {
+        result.setAttachmentPath2(files.get(2));
+      }
+      if (files.size() > 3) {
+        result.setAttachmentPath3(files.get(3));
+      }
+    }
+
+    // 查詢該案件的所有參與者（家長和幼兒）
+    Optional<ApplicationCaseDTO> caseDto = applicationsJdbcRepository.findApplicationCaseByParticipantId(participantID);
+    if (caseDto.isPresent()) {
+      ApplicationCaseDTO applicationCase = caseDto.get();
+      result.setParents(applicationCase.parents);
+      result.setChildren(applicationCase.children);
+    }
+
+    return Optional.of(result);
   }
 
 }

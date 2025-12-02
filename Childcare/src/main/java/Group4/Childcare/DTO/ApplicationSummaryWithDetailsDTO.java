@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
+
 public class ApplicationSummaryWithDetailsDTO {
     private UUID applicationID;
     private LocalDate applicationDate;

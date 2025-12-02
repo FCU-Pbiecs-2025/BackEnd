@@ -10,20 +10,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @AllArgsConstructor
 public class UserSimpleDTO {
   //使用在CaseEditUpdateDTO，前端是個案管理編輯.vue作為使用
-  @JsonProperty("UserID")
-  private String UserID;
-  @JsonProperty("Name")
-  private String Name;
-  @JsonProperty("Gender")
-  private String Gender;
-  @JsonProperty("BirthDate")
-  private String BirthDate;
-  @JsonProperty("MailingAddress")
-  private String MailingAddress;
+  @JsonProperty("userID")
+  private String userID;
+  @JsonProperty("name")
+  private String name;
+  @JsonProperty("gender")
+  private String gender;
+  @JsonProperty("birthDate")
+  private String birthDate;
+  @JsonProperty("mailingAddress")
+  private String mailingAddress;
   @JsonProperty("email")
   private String email;
-  @JsonProperty("PhoneNumber")
-  private String PhoneNumber;
-  @JsonProperty("NationalID")
-  private String NationalID;
+  @JsonProperty("phoneNumber")
+  private String phoneNumber;
+  @JsonProperty("nationalID")
+  private String nationalID;
 }
