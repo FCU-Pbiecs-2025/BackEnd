@@ -34,7 +34,8 @@ public class RevokeController {
     @GetMapping("/applications")
     public ResponseEntity<Object> getRevokedApplications(
             @RequestParam(defaultValue = "0") int offset, // 分頁起始位置
-            @RequestParam(defaultValue = "10") int size) { // 每頁筆數
+            @RequestParam(defaultValue = "10") int size, // 每頁筆數
+            @RequestParam(required = false) String institutionID) { // 機構ID（可選）
         // 參數驗證，offset 不可小於 0，size 必須大於 0
         if (offset < 0 || size <= 0) {
             return ResponseEntity.badRequest().build();
@@ -45,9 +46,9 @@ public class RevokeController {
         // 計算分頁頁碼，維持 repository page*size 的模式
         int page = offset / size;
         // 取得撤銷申請資料
-        List<RevokeApplicationDTO> content = revokeService.getRevokedApplications(page, size);
+        List<RevokeApplicationDTO> content = revokeService.getRevokedApplications(page, size, institutionID);
         // 取得撤銷申請總筆數
-        long totalElements = revokeService.getTotalRevokedApplications();
+        long totalElements = revokeService.getTotalRevokedApplications(institutionID);
         // 計算總頁數
         int totalPages = (int) Math.ceil((double) totalElements / size);
         // 判斷是否有下一頁
@@ -72,7 +73,8 @@ public class RevokeController {
             @RequestParam(required = false) String cancellationID,
             @RequestParam(required = false) String nationalID,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String institutionID) {
         // 參數驗證
         if (offset < 0 || size <= 0) {
             return ResponseEntity.badRequest().body(Map.of("error", "offset 必須 >= 0 且 size 必須 > 0"));
@@ -85,11 +87,13 @@ public class RevokeController {
         List<RevokeApplicationDTO> content = revokeService.searchRevokedApplicationsPaged(
                 cancellationID != null ? cancellationID.trim() : null,
                 nationalID != null ? nationalID.trim() : null,
-                page, size
+                page, size,
+                institutionID != null ? institutionID.trim() : null
         );
         long totalElements = revokeService.countSearchRevokedApplications(
                 cancellationID != null ? cancellationID.trim() : null,
-                nationalID != null ? nationalID.trim() : null
+                nationalID != null ? nationalID.trim() : null,
+                institutionID != null ? institutionID.trim() : null
         );
         int totalPages = (int) Math.ceil((double) totalElements / size);
         boolean hasNext = offset + size < totalElements;

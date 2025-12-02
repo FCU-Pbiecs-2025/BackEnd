@@ -19,8 +19,8 @@ public class RevokesJdbcRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<RevokeApplicationDTO> findRevokedApplications(int page, int size) {
-        String sql =
+    public List<RevokeApplicationDTO> findRevokedApplications(int page, int size, String institutionID) {
+        StringBuilder sql = new StringBuilder(
                 "SELECT c.[CancellationID], c.[CancellationDate], " +
                         "       a.[UserID], u.[Name] AS [UserName], " +
                         "       a.[InstitutionID], i.[InstitutionName],c.[NationalID], " +
@@ -30,10 +30,19 @@ public class RevokesJdbcRepository {
                         "JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] " +
                         "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
                         "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
-                        "where ap.Status='撤銷申請審核中' "+
-                        "ORDER BY c.[CancellationDate] DESC " +
-                        "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                        "WHERE ap.Status='撤銷申請審核中' ");
+
+        java.util.List<Object> params = new java.util.ArrayList<>();
+        if (institutionID != null && !institutionID.isEmpty()) {
+            sql.append("AND a.[InstitutionID] = ? ");
+            params.add(institutionID);
+        }
+
+        sql.append("ORDER BY c.[CancellationDate] DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        params.add(page * size);
+        params.add(size);
+
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
                 if (rowNum < 0) throw new IllegalStateException("invalid row"); // use rowNum to avoid unused-parameter warning
                 return new RevokeApplicationDTO(
                 UUID.fromString(rs.getString("CancellationID")),
@@ -45,19 +54,32 @@ public class RevokesJdbcRepository {
                 rs.getString("AbandonReason"),
                 rs.getString("NationalID")
         );
-        }, page * size, size);
+        }, params.toArray());
     }
 
     // New: total count for pagination
-    public long countRevokedApplications() {
+    public long countRevokedApplications(String institutionID) {
         // Counting cancellations is sufficient as each cancellation represents one revoked application
-        String sql = "SELECT COUNT(*) FROM [dbo].[cancellation] c JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] where ap.Status='撤銷申請審核中' ";
-        Long count = jdbcTemplate.queryForObject(sql, Long.class);
+        StringBuilder sql = new StringBuilder(
+            "SELECT COUNT(*) FROM [dbo].[cancellation] c " +
+            "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
+            "JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] " +
+            "WHERE ap.Status='撤銷申請審核中' ");
+
+        java.util.List<Object> params = new java.util.ArrayList<>();
+        if (institutionID != null && !institutionID.isEmpty()) {
+            sql.append("AND a.[InstitutionID] = ? ");
+            params.add(institutionID);
+        }
+
+        Long count = params.isEmpty()
+            ? jdbcTemplate.queryForObject(sql.toString(), Long.class)
+            : jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
         return count != null ? count : 0L;
     }
 
     // 分頁搜尋撤銷申請（根據 CancellationID 和 NationalID）
-    public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String cancellationID, String nationalID, int page, int size) {
+    public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String cancellationID, String nationalID, int page, int size, String institutionID) {
         StringBuilder sql = new StringBuilder(
             "SELECT c.[CancellationID], c.[CancellationDate], " +
             "a.[UserID], u.[Name] AS [UserName], " +
@@ -66,7 +88,8 @@ public class RevokesJdbcRepository {
             "FROM [dbo].[cancellation] c " +
             "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
             "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
-            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID]  JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] " );
+            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
+            "JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] " );
         boolean hasWhere = false;
         if (cancellationID != null && !cancellationID.isEmpty()) {
             sql.append("WHERE c.[CancellationID] = ? ");
@@ -75,12 +98,20 @@ public class RevokesJdbcRepository {
         if (nationalID != null && !nationalID.isEmpty()) {
             sql.append(hasWhere ? "AND " : "WHERE ");
             sql.append("c.[NationalID] = ? ");
+            hasWhere = true;
         }
-        sql.append("and ap.Status='撤銷申請審核中'  ORDER BY c.[CancellationDate] DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        if (institutionID != null && !institutionID.isEmpty()) {
+            sql.append(hasWhere ? "AND " : "WHERE ");
+            sql.append("a.[InstitutionID] = ? ");
+            hasWhere = true;
+        }
+        sql.append(hasWhere ? "AND " : "WHERE ");
+        sql.append("ap.Status='撤銷申請審核中' ORDER BY c.[CancellationDate] DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
         // 準備參數
         java.util.List<Object> params = new java.util.ArrayList<>();
         if (cancellationID != null && !cancellationID.isEmpty()) params.add(cancellationID);
         if (nationalID != null && !nationalID.isEmpty()) params.add(nationalID);
+        if (institutionID != null && !institutionID.isEmpty()) params.add(institutionID);
         params.add(page * size);
         params.add(size);
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
@@ -99,12 +130,13 @@ public class RevokesJdbcRepository {
     }
 
     // 條件搜尋總數（根據 CancellationID 與 NationalID）
-    public long countSearchRevokedApplications(String cancellationID, String nationalID) {
+    public long countSearchRevokedApplications(String cancellationID, String nationalID, String institutionID) {
         StringBuilder sql = new StringBuilder(
             "SELECT COUNT(*) FROM [dbo].[cancellation] c " +
             "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
             "JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] " +
-            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID]" );
+            "JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] " +
+            "JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] " );
         boolean hasWhere = false;
         if (cancellationID != null && !cancellationID.isEmpty()) {
             sql.append("WHERE c.[CancellationID] = ? ");
@@ -113,12 +145,20 @@ public class RevokesJdbcRepository {
         if (nationalID != null && !nationalID.isEmpty()) {
             sql.append(hasWhere ? "AND " : "WHERE ");
             sql.append("c.[NationalID] = ? ");
+            hasWhere = true;
         }
-        sql.append("and ap.Status='撤銷申請審核中' ");
+        if (institutionID != null && !institutionID.isEmpty()) {
+            sql.append(hasWhere ? "AND " : "WHERE ");
+            sql.append("a.[InstitutionID] = ? ");
+            hasWhere = true;
+        }
+        sql.append(hasWhere ? "AND " : "WHERE ");
+        sql.append("ap.Status='撤銷申請審核中' ");
 
         java.util.List<Object> params = new java.util.ArrayList<>();
         if (cancellationID != null && !cancellationID.isEmpty()) params.add(cancellationID);
         if (nationalID != null && !nationalID.isEmpty()) params.add(nationalID);
+        if (institutionID != null && !institutionID.isEmpty()) params.add(institutionID);
         Long count = params.isEmpty()
             ? jdbcTemplate.queryForObject(sql.toString(), Long.class)
             : jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());

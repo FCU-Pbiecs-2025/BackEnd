@@ -14,22 +14,22 @@ public class RevokeService {
     @Autowired
     private RevokesJdbcRepository revokesJdbcRepository;
 
-    public List<RevokeApplicationDTO> getRevokedApplications(int page, int size) {
-        return revokesJdbcRepository.findRevokedApplications(page, size);
+    public List<RevokeApplicationDTO> getRevokedApplications(int page, int size, String institutionID) {
+        return revokesJdbcRepository.findRevokedApplications(page, size, institutionID);
     }
 
-    public long getTotalRevokedApplications() {
-        return revokesJdbcRepository.countRevokedApplications();
+    public long getTotalRevokedApplications(String institutionID) {
+        return revokesJdbcRepository.countRevokedApplications(institutionID);
     }
 
     // 分頁搜尋撤銷申請
-    public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String cancellationID, String nationalID, int page, int size) {
-        return revokesJdbcRepository.searchRevokedApplicationsPaged(cancellationID, nationalID, page, size);
+    public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String cancellationID, String nationalID, int page, int size, String institutionID) {
+        return revokesJdbcRepository.searchRevokedApplicationsPaged(cancellationID, nationalID, page, size, institutionID);
     }
 
     // 搜尋撤銷申請總數
-    public long countSearchRevokedApplications(String cancellationID, String nationalID) {
-        return revokesJdbcRepository.countSearchRevokedApplications(cancellationID, nationalID);
+    public long countSearchRevokedApplications(String cancellationID, String nationalID, String institutionID) {
+        return revokesJdbcRepository.countSearchRevokedApplications(cancellationID, nationalID, institutionID);
     }
 
     // 取得撤銷資料
