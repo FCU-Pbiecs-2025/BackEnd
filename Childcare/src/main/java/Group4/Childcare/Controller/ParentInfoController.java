@@ -2,9 +2,12 @@ package Group4.Childcare.Controller;
 
 import Group4.Childcare.Model.ParentInfo;
 import Group4.Childcare.Service.ParentInfoService;
+import Group4.Childcare.Repository.ParentInfoJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,9 +18,16 @@ public class ParentInfoController {
     @Autowired
     private ParentInfoService service;
 
+    @Autowired
+    private ParentInfoJdbcRepository repository;
+
     @PostMapping
     public ResponseEntity<ParentInfo> create(@RequestBody ParentInfo entity) {
-        return ResponseEntity.ok(service.create(entity));
+        // 驗證 familyInfoID 不能為空
+        if (entity.getFamilyInfoID() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "FamilyInfoID is required");
+        }
+        return ResponseEntity.ok(repository.save(entity));
     }
 
     @GetMapping("/{id}")
