@@ -33,12 +33,5 @@ public class ApplicationCaseDTO {
     // 兒童（被申請入托）清單
     public List<ApplicationParticipantDTO> children;
 
-    /**
-     * 身分別 (applications.IdentityType)
-     * 0: 一般戶
-     * 1: 中低收入戶
-     * 2: 低收入戶
-     * 3: 其他（依實際定義）
-     */
     public Byte identityType;
 }

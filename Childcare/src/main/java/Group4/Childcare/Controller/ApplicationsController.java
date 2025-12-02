@@ -124,129 +124,117 @@ public class ApplicationsController {
   }
 
   /**
+   * 根據 ParticipantID 查詢案件詳情
    *
-   * 個案管理編輯頁面使用
-   * GET - 根據幼兒身分證字號查詢案件並自動讀取檔案列表
-   * 個案管理編輯.vue使用
-   * 端點: GET /applications/case?childrenNationalID=xxx
+   * 功能說明：
+   * 使用 ParticipantID（參與者ID）直接查詢特定幼兒在某案件中的詳細信息
+   * 此方法精確可靠，可以區分同一幼兒的多筆申請
    *
-   * @param childrenNationalID 幼兒身分證字號（查詢參數，增加隱私性）
-   * @return CaseEditUpdateDTO（包含檔案列表）或 404 Not Found
+   * 端點: GET /applications/case?participantID=xxx
+   *
+   * 參數說明:
+   * - participantID: 參與者ID（UUID 格式，必需）
    *
    * 功能流程:
-   * 1. 根據幼兒身分證字號查詢案件信息
-   * 2. 使用查詢到的 applicationId 掃描 IdentityResource/{applicationId}/ 文件夾
-   * 3. 如果文件夾不存在 → files 返回空陣列 []
-   * 4. 如果文件夾存在 → 讀取所有檔案名稱到 files 陣列
+   * 1. 根據 ParticipantID 查詢應用程序參與者信息
+   * 2. 取得關聯的 ApplicationID
+   * 3. 自動讀取該應用的所有附件文件
+   * 4. 查詢該案件的所有參與者（家長和幼兒）
+   * 5. 申請人資料從 users 表取得
+   *
+   * 回傳值:
+   * - 200 OK - 返回 CaseEditUpdateDTO 包含案件全部信息和所有參與者
+   * - 400 Bad Request - 缺少或無效的 participantID 參數
+   * - 404 Not Found - 找不到該 participantID 對應的案件
+   * - 500 Internal Server Error - 伺服器錯誤
    *
    * 成功回應 (200 OK):
-  {
-  "caseNumber": 1004,
-  "applyDate": "2024-04-05",
-  "identityType": 2,
-  "institutionId": "3a38b774-edbe-4423-b0ec-8844274ffa07",
-  "institutionName": "新竹縣公設民營嘉豐托嬰中心",
-  "selectedClass": "小班",
-  "currentOrder": 4,
-  "reviewDate": null,
-  "applicationID": "112e7e08-136d-4439-82ad-d1f355942af3",
-  "parents": [
-  {
-  "participantType": "家長",
-  "nationalID": "J012345678",
-  "name": "林建國",
-  "gender": "男",
-  "relationShip": "父親",
-  "occupation": "公務員",
-  "phoneNumber": "0967890123",
-  "householdAddress": "高雄市前金區中正路50號",
-  "mailingAddress": "高雄市前金區中正路50號",
-  "email": "lin@parent.com",
-  "birthDate": "1987-04-18",
-  "isSuspended": false,
-  "suspendEnd": null,
-  "currentOrder": null,
-  "status": "審核中",
-  "reason": null,
-  "classID": null,
-  "reviewDate": null
-  },
-  {
-  "participantType": "家長",
-  "nationalID": "R890123456",
-  "name": "林秀英",
-  "gender": "女",
-  "relationShip": "母親",
-  "occupation": "家管",
-  "phoneNumber": "0978901234",
-  "householdAddress": "高雄市前金區中正路50號",
-  "mailingAddress": "高雄市前金區中正路50號",
-  "email": "lin.mother@parent.com",
-  "birthDate": "1990-02-28",
-  "isSuspended": false,
-  "suspendEnd": null,
-  "currentOrder": null,
-  "status": "審核中",
-  "reason": null,
-  "classID": null,
-  "reviewDate": null
-  }
-  ],
-  "children": [
-  {
-  "participantType": "幼兒",
-  "nationalID": "Q789012345",
-  "name": "林小強",
-  "gender": "男",
-  "relationShip": null,
-  "occupation": null,
-  "phoneNumber": null,
-  "householdAddress": "高雄市前金區中正路50號",
-  "mailingAddress": "高雄市前金區中正路50號",
-  "email": null,
-  "birthDate": "2023-03-12",
-  "isSuspended": false,
-  "suspendEnd": null,
-  "currentOrder": 4,
-  "status": "審核中",
-  "reason": null,
-  "classID": "3A384085-F1A5-4DAC-901A-B8EA1A4A9B72",
-  "reviewDate": null
-  }
-  ],
-  "attachmentPath": null,
-  "attachmentPath1": null,
-  "attachmentPath2": null,
-  "attachmentPath3": null,
-  "user": {
-  "email": null,
-  "name": "林小強",
-  "userID": "A4F1F448-E25B-4595-83D9-CEC86662EA00",
-  "gender": "M",
-  "nationalID": "Q789012345",
-  "birthDate": "2023-03-12",
-  "phoneNumber": null,
-  "mailingAddress": "高雄市前金區中正路50號"
-  }
-  }
-   *
-   * 錯誤回應:
-   * - 400 Bad Request - 缺少或無效的 childrenNationalID 參數
-   * - 404 Not Found - 找不到該幼兒身分證字號對應的案件
+   * {
+   *   "caseNumber": 1764427242183,
+   *   "applyDate": "2025-11-29",
+   *   "identityType": 2,
+   *   "institutionId": "e09f1689-17a4-46f7-ae95-160a368147af",
+   *   "institutionName": "新竹縣東正社區公共托育家園",
+   *   "selectedClass": "小班",
+   *   "currentOrder": 1,
+   *   "reviewDate": null,
+   *   "applicationID": "4286bfa6-fcfd-40d4-afb2-2c16e4dd5eec",
+   *   "participantID": "550e8400-e29b-41d4-a716-446655440001",
+   *   "user": {
+   *     "userID": "4B051688-5751-45EB-A63E-CF6ADE991332",
+   *     "name": "李小寶",
+   *     "gender": "M",
+   *     "nationalID": "E567890123",
+   *     "birthDate": "2021-03-15",
+   *     "mailingAddress": "台北市大安區仁愛路200號",
+   *     "email": null,
+   *     "phoneNumber": null
+   *   },
+   *   "parents": [
+   *     {
+   *       "participantID": "550e8400-e29b-41d4-a716-446655440002",
+   *       "participantType": "家長",
+   *       "nationalID": "C345678901",
+   *       "name": "李美玲",
+   *       "gender": "女",
+   *       "relationShip": "母親",
+   *       "occupation": "教師",
+   *       "phoneNumber": "0934567890",
+   *       "householdAddress": "台北市大安區仁愛路200號",
+   *       "mailingAddress": "台北市大安區仁愛路200號",
+   *       "email": "li@parent.com",
+   *       "birthDate": "1990-05-10",
+   *       "isSuspended": false,
+   *       "suspendEnd": null,
+   *       "currentOrder": null,
+   *       "status": null,
+   *       "reason": null,
+   *       "classID": null,
+   *       "reviewDate": null
+   *     }
+   *   ],
+   *   "children": [
+   *     {
+   *       "participantID": "550e8400-e29b-41d4-a716-446655440001",
+   *       "participantType": "幼兒",
+   *       "nationalID": "E567890123",
+   *       "name": "李小寶",
+   *       "gender": "男",
+   *       "relationShip": null,
+   *       "occupation": null,
+   *       "phoneNumber": null,
+   *       "householdAddress": "台北市大安區仁愛路200號",
+   *       "mailingAddress": "台北市大安區仁愛路200號",
+   *       "email": null,
+   *       "birthDate": "2021-03-15",
+   *       "isSuspended": false,
+   *       "suspendEnd": null,
+   *       "currentOrder": 1,
+   *       "status": "審核中",
+   *       "reason": null,
+   *       "classID": "3A384085-F1A5-4DAC-901A-B8EA1A4A9B72",
+   *       "reviewDate": null
+   *     }
+   *   ],
+   *   "attachmentPath": "450b4b86-e5aa-4acd-92de-28d43811fe62_螢幕擷取畫面.png",
+   *   "attachmentPath1": null,
+   *   "attachmentPath2": null,
+   *   "attachmentPath3": null
+   * }
    *
    * 使用範例:
-   * GET /applications/case?childrenNationalID=H123456789
+   * GET /applications/case?participantID=550e8400-e29b-41d4-a716-446655440001
    */
   @GetMapping("/case")
-  public ResponseEntity<?> getCaseByChildrenNationalId(@RequestParam String childrenNationalID) {
-    if (childrenNationalID == null || childrenNationalID.trim().isEmpty()) {
-      return ResponseEntity.badRequest().body("Missing or invalid childrenNationalID parameter");
+  public ResponseEntity<?> getCaseByParticipantId(@RequestParam(required = true) UUID participantID) {
+    if (participantID == null) {
+      return ResponseEntity.badRequest().body("Missing or invalid participantID parameter");
     }
 
     try {
-      Optional<CaseEditUpdateDTO> result = service.getCaseByChildrenNationalId(childrenNationalID);
+      Optional<CaseEditUpdateDTO> result = service.getCaseByParticipantId(participantID);
       return result.map(ResponseEntity::ok)
-                   .orElseGet(() -> ResponseEntity.notFound().build());
+              .orElseGet(() -> ResponseEntity.notFound().build());
     } catch (Exception ex) {
       return ResponseEntity.status(500).body("Error retrieving case: " + ex.getMessage());
     }
@@ -405,11 +393,11 @@ public class ApplicationsController {
 
       // 從 caseDto 中設置必要的資訊
       newApplication.setApplicationDate(caseDto.getApplyDate() != null ?
-          caseDto.getApplyDate() : java.time.LocalDate.now());
+              caseDto.getApplyDate() : java.time.LocalDate.now());
       newApplication.setCaseNumber(caseDto.getCaseNumber());
       newApplication.setInstitutionID(caseDto.getInstitutionId());
       newApplication.setIdentityType(caseDto.getIdentityType() != null ?
-          caseDto.getIdentityType().byteValue() : (byte)0);
+              caseDto.getIdentityType().byteValue() : (byte)0);
 
       // 如果有 User 資訊，設定 UserID
       if (caseDto.getUser() != null) {
@@ -492,9 +480,9 @@ public class ApplicationsController {
 
       // 如果有任何附件路徑被設定，更新一次 Application 以寫入 DB
       if (newApplication.getAttachmentPath() != null ||
-          newApplication.getAttachmentPath1() != null ||
-          newApplication.getAttachmentPath2() != null ||
-          newApplication.getAttachmentPath3() != null) {
+              newApplication.getAttachmentPath1() != null ||
+              newApplication.getAttachmentPath2() != null ||
+              newApplication.getAttachmentPath3() != null) {
         try {
           service.create(newApplication); // 再次 save 以更新附件欄位
         } catch (Exception ex) {
@@ -790,26 +778,26 @@ public class ApplicationsController {
   @PostMapping("/admin/search")
   public ResponseEntity<List<Map<String, Object>>> adminSearchCases(@RequestBody AdminCaseSearchRequestDto searchDto) {
     StringBuilder sql = new StringBuilder(
-        "SELECT " +
-        "  a.ApplicationID, " +
-        "  a.CaseNumber, " +
-        "  a.ApplicationDate, " +
-        "  a.IdentityType, " +
-        "  i.InstitutionName, " +
-        "  c.ClassName, " +
-        "  u.NationalID AS ApplicantNationalID, " +
-        "  u.Name AS ApplicantName, " +
-        "  ap.NationalID AS ChildNationalID, " +
-        "  ap.Name AS ChildName, " +
-        "  ap.Status AS CaseStatus, " +
-        "  ap.ReviewDate, " +
-        "  ap.CurrentOrder " +
-        "FROM applications a " +
-        "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
-        "LEFT JOIN users u ON a.UserID = u.UserID " +
-        "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
-        "LEFT JOIN classes c ON ap.ClassID = c.ClassID " +
-        "WHERE ap.ParticipantType = 0 "  // 只查詢幼兒記錄
+            "SELECT " +
+                    "  a.ApplicationID, " +
+                    "  a.CaseNumber, " +
+                    "  a.ApplicationDate, " +
+                    "  a.IdentityType, " +
+                    "  i.InstitutionName, " +
+                    "  c.ClassName, " +
+                    "  u.NationalID AS ApplicantNationalID, " +
+                    "  u.Name AS ApplicantName, " +
+                    "  ap.NationalID AS ChildNationalID, " +
+                    "  ap.Name AS ChildName, " +
+                    "  ap.Status AS CaseStatus, " +
+                    "  ap.ReviewDate, " +
+                    "  ap.CurrentOrder " +
+                    "FROM applications a " +
+                    "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
+                    "LEFT JOIN users u ON a.UserID = u.UserID " +
+                    "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
+                    "LEFT JOIN classes c ON ap.ClassID = c.ClassID " +
+                    "WHERE ap.ParticipantType = 0 "  // 只查詢幼兒記錄
     );
 
     List<Object> params = new ArrayList<>();
@@ -867,12 +855,12 @@ public class ApplicationsController {
    */
   @GetMapping("/case/search")
   public ResponseEntity<List<Map<String, Object>>> adminSearchCasesGet(
-      @RequestParam(required = false) String institutionId,
-      @RequestParam(required = false) String classId,
-      @RequestParam(required = false) Long caseNumber,
-      @RequestParam(required = false) String applicantNationalId,
-      @RequestParam(required = false) String identityType,
-      @RequestParam(required = false) String caseStatus) {
+          @RequestParam(required = false) String institutionId,
+          @RequestParam(required = false) String classId,
+          @RequestParam(required = false) Long caseNumber,
+          @RequestParam(required = false) String applicantNationalId,
+          @RequestParam(required = false) String identityType,
+          @RequestParam(required = false) String caseStatus) {
 
     AdminCaseSearchRequestDto dto = new AdminCaseSearchRequestDto();
 
@@ -913,18 +901,140 @@ public class ApplicationsController {
    * @param caseNumber 案件流水號篩選（可選）
    * @param identityType 身分別篩選（可選）
    * @return 包含分頁資訊和案件列表的回應
+   *
+   * {
+   *     "totalElements": 6,
+   *     "content": [
+   *         {
+   *             "caseNumber": 1764571014066,
+   *             "applicationId": "d0e85fa5-56f7-43fa-ba0c-bbd320d50d68",
+   *             "applicationDate": "2025-12-01",
+   *             "institutionName": "新竹縣東正社區公共托育家園",
+   *             "childNationalId": "E567890123",
+   *             "childName": "李小寶",
+   *             "childBirthDate": "2021-03-15",
+   *             "currentOrder": null,
+   *             "reviewStatus": "審核中",
+   *             "className": null,
+   *             "applicantNationalName": "李美玲",
+   *             "applicantNationalId": "C345678901",
+   *             "identityType": "1",
+   *             "caseStatus": "審核中"
+   *         },
+   *         {
+   *             "caseNumber": 1764571012981,
+   *             "applicationId": "33bf0cbf-e2e7-4d63-9ff9-9166c5e446be",
+   *             "applicationDate": "2025-12-01",
+   *             "institutionName": "新竹縣東正社區公共托育家園",
+   *             "childNationalId": "E567890123",
+   *             "childName": "李小寶",
+   *             "childBirthDate": "2021-03-15",
+   *             "currentOrder": null,
+   *             "reviewStatus": "審核中",
+   *             "className": null,
+   *             "applicantNationalName": "李美玲",
+   *             "applicantNationalId": "C345678901",
+   *             "identityType": "1",
+   *             "caseStatus": "審核中"
+   *         },
+   *         {
+   *             "caseNumber": 1764427013142,
+   *             "applicationId": "1fee23ea-cec6-49b2-9f43-d5fd8ea2ed1f",
+   *             "applicationDate": "2025-11-29",
+   *             "institutionName": "新竹縣公設民營松柏托嬰中心",
+   *             "childNationalId": "E567890123",
+   *             "childName": "李小寶",
+   *             "childBirthDate": "2021-03-15",
+   *             "currentOrder": null,
+   *             "reviewStatus": "通過",
+   *             "className": null,
+   *             "applicantNationalName": "李美玲",
+   *             "applicantNationalId": "C345678901",
+   *             "identityType": "3",
+   *             "caseStatus": "通過"
+   *         },
+   *         {
+   *             "caseNumber": 1764427242183,
+   *             "applicationId": "4286bfa6-fcfd-40d4-afb2-2c16e4dd5eec",
+   *             "applicationDate": "2025-11-29",
+   *             "institutionName": "新竹縣東正社區公共托育家園",
+   *             "childNationalId": "E567890123",
+   *             "childName": "李小寶",
+   *             "childBirthDate": "2021-03-15",
+   *             "currentOrder": null,
+   *             "reviewStatus": "審核中",
+   *             "className": null,
+   *             "applicantNationalName": "李美玲",
+   *             "applicantNationalId": "C345678901",
+   *             "identityType": "2",
+   *             "caseStatus": "審核中"
+   *         },
+   *         {
+   *             "caseNumber": 1764427118154,
+   *             "applicationId": "f5d3966d-43d6-4f93-990a-a096a4b8cc86",
+   *             "applicationDate": "2025-11-29",
+   *             "institutionName": "新竹縣東正社區公共托育家園",
+   *             "childNationalId": "E567890123",
+   *             "childName": "李小寶",
+   *             "childBirthDate": "2021-03-15",
+   *             "currentOrder": null,
+   *             "reviewStatus": "通過",
+   *             "className": null,
+   *             "applicantNationalName": "李美玲",
+   *             "applicantNationalId": "C345678901",
+   *             "identityType": "1",
+   *             "caseStatus": "通過"
+   *         },
+   *         {
+   *             "caseNumber": 1004,
+   *             "applicationId": "112e7e08-136d-4439-82ad-d1f355942af3",
+   *             "applicationDate": "2024-04-05",
+   *             "institutionName": "新竹縣公設民營嘉豐托嬰中心",
+   *             "childNationalId": "H890123456",
+   *             "childName": "林小美",
+   *             "childBirthDate": "2022-01-05",
+   *             "currentOrder": 3,
+   *             "reviewStatus": "撤銷申請審核中",
+   *             "className": "小班",
+   *             "applicantNationalName": "李美玲",
+   *             "applicantNationalId": "C345678901",
+   *             "identityType": "2",
+   *             "caseStatus": "撤銷申請審核中"
+   *         },
+   *         {
+   *             "caseNumber": 1004,
+   *             "applicationId": "112e7e08-136d-4439-82ad-d1f355942af3",
+   *             "applicationDate": "2024-04-05",
+   *             "institutionName": "新竹縣公設民營嘉豐托嬰中心",
+   *             "childNationalId": "Q789012345",
+   *             "childName": "林小強",
+   *             "childBirthDate": "2023-03-12",
+   *             "currentOrder": 4,
+   *             "reviewStatus": "審核中",
+   *             "className": "小班",
+   *             "applicantNationalName": "李美玲",
+   *             "applicantNationalId": "C345678901",
+   *             "identityType": "2",
+   *             "caseStatus": "審核中"
+   *         }
+   *     ],
+   *     "hasNext": false,
+   *     "size": 10,
+   *     "offset": 0,
+   *     "totalPages": 1
+   * }
    */
   @GetMapping("/cases/list")
   public ResponseEntity<Map<String, Object>> getCasesList(
-      @RequestParam(defaultValue = "0") int offset,
-      @RequestParam(defaultValue = "10") int size,
-      @RequestParam(required = false) String status,
-      @RequestParam(required = false) String institutionId,
-      @RequestParam(required = false) String applicationId,
-      @RequestParam(required = false) String classId,
-      @RequestParam(required = false) String applicantNationalId,
-      @RequestParam(required = false) Long caseNumber,
-      @RequestParam(required = false) String identityType) {
+          @RequestParam(defaultValue = "0") int offset,
+          @RequestParam(defaultValue = "10") int size,
+          @RequestParam(required = false) String status,
+          @RequestParam(required = false) String institutionId,
+          @RequestParam(required = false) String applicationId,
+          @RequestParam(required = false) String classId,
+          @RequestParam(required = false) String applicantNationalId,
+          @RequestParam(required = false) Long caseNumber,
+          @RequestParam(required = false) String identityType) {
 
     // 基本驗證
     if (offset < 0) {
@@ -972,21 +1082,21 @@ public class ApplicationsController {
 
     // 取得案件列表和總筆數
     List<CaseOffsetListDTO> content = service.getCaseListWithOffset(offset, size, status, institutionUUID,
-                                                                     applicationUUID, classUUID, applicantNationalId,
-                                                                     caseNumber, identityType);
+            applicationUUID, classUUID, applicantNationalId,
+            caseNumber, identityType);
     long totalElements = service.countCaseList(status, institutionUUID, applicationUUID, classUUID,
-                                               applicantNationalId, caseNumber, identityType);
+            applicantNationalId, caseNumber, identityType);
     int totalPages = (int) Math.ceil((double) totalElements / size);
     boolean hasNext = offset + size < totalElements;
 
     // 構建回應
     Map<String, Object> response = Map.of(
-        "content", content,
-        "offset", offset,
-        "size", size,
-        "totalElements", totalElements,
-        "totalPages", totalPages,
-        "hasNext", hasNext
+            "content", content,
+            "offset", offset,
+            "size", size,
+            "totalElements", totalElements,
+            "totalPages", totalPages,
+            "hasNext", hasNext
     );
 
     return ResponseEntity.ok(response);

@@ -1,10 +1,19 @@
 package Group4.Childcare.DTO;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
+import java.util.UUID;
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 
 public class ApplicationParticipantDTO {
 
   //ap、revoke共用，絕對不能改
+    public UUID participantID;
     public String participantType;
     public String nationalID;
     public String name;
