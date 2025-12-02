@@ -13,6 +13,7 @@ public class UserApplicationDetailsDTO {
     private UUID applicationID;        // from applications table
     private LocalDate applicationDate; // from applications table
     private UUID institutionID;        // from applications table
+    private String caseNumber;         // from applications table (a.CaseNumber)
     private String institutionName;    // from institutions table (i.InstitutionName)
     private String childname;          // from application_participants table (ap.Name)
     private LocalDate birthDate;       // from application_participants table

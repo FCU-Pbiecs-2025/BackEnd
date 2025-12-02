@@ -722,6 +722,7 @@ public class ApplicationsJdbcRepository {
             "a.ApplicationID, " +
             "a.ApplicationDate, " +
             "a.InstitutionID, " +
+            "a.CaseNumber, " +
             "i.InstitutionName, " +
             "ap.Name as childname, " +
             "ap.BirthDate, " +
@@ -749,6 +750,7 @@ public class ApplicationsJdbcRepository {
       if (rs.getDate("BirthDate") != null) {
         dto.setBirthDate(rs.getDate("BirthDate").toLocalDate());
       }
+      dto.setCaseNumber(rs.getString("CaseNumber"));
       dto.setStatus(rs.getString("Status"));
       dto.setCurrentOrder(rs.getInt("CurrentOrder"));
       dto.setChildNationalID(rs.getString("childNationalID"));
