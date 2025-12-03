@@ -27,11 +27,15 @@ public class ChildInfoService {
 
     public ChildInfo update(UUID id, ChildInfo entity) {
         entity.setChildID(id);
-        return repository.save(entity);
+        return repository.put(entity);
     }
 
     public List<ChildInfo> getByFamilyInfoID(UUID familyInfoID) {
         return repository.findByFamilyInfoID(familyInfoID);
+    }
+
+    public void deleteByChildId(UUID childId) {
+        repository.deleteById(childId);
     }
 }
 

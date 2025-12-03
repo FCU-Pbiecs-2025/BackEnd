@@ -181,6 +181,72 @@ public class UsersController {
   public ResponseEntity<Users> updateUser(@PathVariable UUID id, @RequestBody Users user) {
     return ResponseEntity.ok(usersService.updateUser(id, user));
   }
+
+  /**
+   * PUT /users/{id}/profile
+   * 更新使用者基本資料（僅更新姓名、信箱、電話、地址）- 使用 JDBC
+   * body 範例資料:
+   * {
+   *     "name": "王小明",
+   *     "email": "wang@example.com",
+   *     "phoneNumber": "0923456789",
+   *     "mailingAddress": "台北市中正區重慶南路一段100號"
+   * }
+   * @param id 使用者ID
+   * @param request 包含要更新的欄位
+   * @return 更新後的使用者資料
+   */
+  @PutMapping("/{id}/profile")
+  public ResponseEntity<Map<String, Object>> updateUserProfile(
+          @PathVariable UUID id,
+          @RequestBody Map<String, String> request) {
+    Map<String, Object> result = new HashMap<>();
+
+    try {
+      // 檢查使用者是否存在
+      Optional<Users> userOpt = usersService.getUserById(id);
+      if (userOpt.isEmpty()) {
+        result.put("success", false);
+        result.put("message", "使用者不存在");
+        return ResponseEntity.notFound().build();
+      }
+
+      // 準備要更新的欄位（只更新有提供的欄位）
+      String name = request.containsKey("name") && request.get("name") != null
+          ? request.get("name").trim() : null;
+      String email = request.containsKey("email") && request.get("email") != null
+          ? request.get("email").trim() : null;
+      String phoneNumber = request.containsKey("phoneNumber") && request.get("phoneNumber") != null
+          ? request.get("phoneNumber").trim() : null;
+      String mailingAddress = request.containsKey("mailingAddress") && request.get("mailingAddress") != null
+          ? request.get("mailingAddress").trim() : null;
+
+      // 使用 JDBC 方式更新
+      int rowsUpdated = usersService.updateUserProfile(id, name, email, phoneNumber, mailingAddress);
+
+      if (rowsUpdated > 0) {
+        // 重新查詢更新後的使用者資料
+        Users updatedUser = usersService.getUserById(id).orElse(null);
+
+        result.put("success", true);
+        result.put("message", "資料更新成功");
+        result.put("user", updatedUser);
+        result.put("rowsUpdated", rowsUpdated);
+        return ResponseEntity.ok(result);
+      } else {
+        result.put("success", false);
+        result.put("message", "沒有欄位被更新");
+        return ResponseEntity.ok(result);
+      }
+
+    } catch (Exception e) {
+      System.err.println("Error in updateUserProfile: " + e.getMessage());
+      e.printStackTrace();
+      result.put("success", false);
+      result.put("message", "資料更新失敗，請稍後再試");
+      return ResponseEntity.status(500).body(result);
+    }
+  }
   /**
    * POST /users/new-member
    * 註冊新使用者

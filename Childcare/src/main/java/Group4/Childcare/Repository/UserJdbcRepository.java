@@ -246,4 +246,64 @@ public class UserJdbcRepository {
                      "ORDER BY u.UserID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         return jdbcTemplate.query(sql, USER_SUMMARY_ROW_MAPPER, offset, limit);
     }
+
+    /**
+     * 部分更新使用者資料（僅更新姓名、信箱、電話、地址）
+     * @param id 使用者ID
+     * @param name 姓名（可為 null，表示不更新）
+     * @param email 信箱（可為 null，表示不更新）
+     * @param phoneNumber 電話（可為 null，表示不更新）
+     * @param mailingAddress 地址（可為 null，表示不更新）
+     * @return 更新的行數
+     */
+    public int updateProfile(UUID id, String name, String email, String phoneNumber, String mailingAddress) {
+        StringBuilder sql = new StringBuilder("UPDATE " + TABLE_NAME + " SET ");
+        List<Object> params = new java.util.ArrayList<>();
+        boolean first = true;
+
+        if (name != null) {
+            if (!first) sql.append(", ");
+            sql.append("Name = ?");
+            params.add(name);
+            first = false;
+        }
+        if (email != null) {
+            if (!first) sql.append(", ");
+            sql.append("Email = ?");
+            params.add(email);
+            first = false;
+        }
+        if (phoneNumber != null) {
+            if (!first) sql.append(", ");
+            sql.append("PhoneNumber = ?");
+            params.add(phoneNumber);
+            first = false;
+        }
+        if (mailingAddress != null) {
+            if (!first) sql.append(", ");
+            sql.append("MailingAddress = ?");
+            params.add(mailingAddress);
+            first = false;
+        }
+
+        // 如果沒有任何欄位需要更新，直接返回
+        if (first) {
+            System.out.println("No fields to update for user: " + id);
+            return 0;
+        }
+
+        sql.append(" WHERE UserID = ?");
+        params.add(id.toString());
+
+        try {
+            int rowsUpdated = jdbcTemplate.update(sql.toString(), params.toArray());
+            System.out.println("User profile updated, rows affected: " + rowsUpdated);
+            return rowsUpdated;
+        } catch (Exception e) {
+            System.err.println("Error updating user profile: " + e.getMessage());
+            throw new RuntimeException("Failed to update user profile", e);
+        }
+    }
 }
+
+

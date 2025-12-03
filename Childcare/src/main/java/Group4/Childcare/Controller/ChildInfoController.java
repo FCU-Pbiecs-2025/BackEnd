@@ -35,5 +35,24 @@ public class ChildInfoController {
     public ResponseEntity<ChildInfo> update(@PathVariable UUID id, @RequestBody ChildInfo entity) {
         return ResponseEntity.ok(service.update(id, entity));
     }
+
+    @GetMapping("/family/{familyInfoId}")
+    public ResponseEntity<List<ChildInfo>> getByFamilyInfoId(@PathVariable UUID familyInfoId) {
+        List<ChildInfo> children = service.getByFamilyInfoID(familyInfoId);
+        if (children.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(children);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteByChildId(@PathVariable UUID id) {
+        Optional<ChildInfo> entity = service.getById(id);
+        if (entity.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        service.deleteByChildId(id);
+        return ResponseEntity.noContent().build();
+    }
 }
 

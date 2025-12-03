@@ -27,6 +27,7 @@ public class ParentInfoController {
         if (entity.getFamilyInfoID() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "FamilyInfoID is required");
         }
+        entity.setParentID(null);
         return ResponseEntity.ok(repository.save(entity));
     }
 
@@ -44,6 +45,15 @@ public class ParentInfoController {
     @PutMapping("/{id}")
     public ResponseEntity<ParentInfo> update(@PathVariable UUID id, @RequestBody ParentInfo entity) {
         return ResponseEntity.ok(service.update(id, entity));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteByParentID(@PathVariable UUID id) {
+        if (!repository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        repository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
 

@@ -48,14 +48,17 @@ public class ChildInfoJdbcRepository {
     // Save method
     public ChildInfo save(ChildInfo childInfo) {
         if (childInfo.getChildID() == null) {
-            childInfo.setChildID(UUID.randomUUID());
             return insert(childInfo);
-        } else {
-            return update(childInfo);
         }
+      return insert(childInfo);
     }
 
-    // Insert method
+  public ChildInfo put(ChildInfo childInfo) {
+    return update(childInfo);
+  }
+
+
+  // Insert method
     private ChildInfo insert(ChildInfo childInfo) {
         String sql = "INSERT INTO " + TABLE_NAME +
                     " (ChildID, NationalID, Name, Gender, BirthDate, FamilyInfoID, HouseholdAddress) " +

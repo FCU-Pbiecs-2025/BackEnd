@@ -100,4 +100,23 @@ public class UsersService {
       throw new RuntimeException("Failed to save user via JDBC: " + e.getMessage(), e);
     }
   }
+
+  /**
+   * 使用 JDBC 部分更新使用者基本資料（僅更新姓名、信箱、電話、地址）
+   * @param id 使用者ID
+   * @param name 姓名（可為 null，表示不更新）
+   * @param email 信箱（可為 null，表示不更新）
+   * @param phoneNumber 電話（可為 null，表示不更新）
+   * @param mailingAddress 地址（可為 null，表示不更新）
+   * @return 更新的行數
+   */
+  public int updateUserProfile(UUID id, String name, String email, String phoneNumber, String mailingAddress) {
+    try {
+      return jdbcRepository.updateProfile(id, name, email, phoneNumber, mailingAddress);
+    } catch (Exception e) {
+      System.err.println("Error in updateUserProfile: " + e.getMessage());
+      e.printStackTrace();
+      throw new RuntimeException("Failed to update user profile: " + e.getMessage(), e);
+    }
+  }
 }
