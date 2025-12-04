@@ -14,6 +14,7 @@ public class ApplicationParticipantDTO {
 
   //ap、revoke共用，絕對不能改
     public UUID participantID;
+    public UUID applicationID;
     public String participantType;
     public String nationalID;
     public String name;

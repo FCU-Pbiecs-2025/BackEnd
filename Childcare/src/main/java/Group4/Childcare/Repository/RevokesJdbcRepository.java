@@ -21,7 +21,7 @@ public class RevokesJdbcRepository {
 
     public List<RevokeApplicationDTO> findRevokedApplications(int page, int size, String institutionID) {
         StringBuilder sql = new StringBuilder(
-                "SELECT c.[CancellationID], c.[CancellationDate], " +
+                "SELECT c.[CancellationID], a.[ApplicationID], c.[CancellationDate], " +
                         "       a.[UserID], u.[Name] AS [UserName], " +
                         "       a.[InstitutionID], i.[InstitutionName],c.[NationalID], " +
                         "       c.[AbandonReason] " +
@@ -43,9 +43,10 @@ public class RevokesJdbcRepository {
         params.add(size);
 
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-                if (rowNum < 0) throw new IllegalStateException("invalid row"); // use rowNum to avoid unused-parameter warning
-                return new RevokeApplicationDTO(
+            if (rowNum < 0) throw new IllegalStateException("invalid row");
+            return new RevokeApplicationDTO(
                 UUID.fromString(rs.getString("CancellationID")),
+                UUID.fromString(rs.getString("ApplicationID")),
                 rs.getDate("CancellationDate") != null ? rs.getDate("CancellationDate").toLocalDate().atStartOfDay() : null,
                 UUID.fromString(rs.getString("UserID")),
                 rs.getString("UserName"),
@@ -81,7 +82,7 @@ public class RevokesJdbcRepository {
     // 分頁搜尋撤銷申請（根據 CancellationID 和 NationalID）
     public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String cancellationID, String nationalID, int page, int size, String institutionID) {
         StringBuilder sql = new StringBuilder(
-            "SELECT c.[CancellationID], c.[CancellationDate], " +
+            "SELECT c.[CancellationID], a.[ApplicationID], c.[CancellationDate], " +
             "a.[UserID], u.[Name] AS [UserName], " +
             "a.[InstitutionID], i.[InstitutionName],c.[NationalID], " +
             "c.[AbandonReason] " +
@@ -118,6 +119,7 @@ public class RevokesJdbcRepository {
             if (rowNum < 0) throw new IllegalStateException("invalid row"); // use rowNum to avoid unused-parameter warning
             return new RevokeApplicationDTO(
             UUID.fromString(rs.getString("CancellationID")),
+            UUID.fromString(rs.getString("ApplicationID")),
             rs.getDate("CancellationDate") != null ? rs.getDate("CancellationDate").toLocalDate().atStartOfDay() : null,
             UUID.fromString(rs.getString("UserID")),
             rs.getString("UserName"),
@@ -167,9 +169,10 @@ public class RevokesJdbcRepository {
 
     // 新增：根據 CancellationID 取得撤銷資料（含基本欄位）
     public RevokeApplicationDTO getRevokeByCancellationID(String cancellationID) {
-        String sql = "SELECT c.[CancellationID], c.[CancellationDate], a.[UserID], u.[Name] AS [UserName], a.[InstitutionID], i.[InstitutionName], c.[AbandonReason], c.[NationalID] FROM [dbo].[cancellation] c JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] WHERE c.[CancellationID] = ?";
+        String sql = "SELECT c.[CancellationID],c.[ApplicationID], c.[CancellationDate], a.[UserID], u.[Name] AS [UserName], a.[InstitutionID], i.[InstitutionName], c.[AbandonReason], c.[NationalID] FROM [dbo].[cancellation] c JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] WHERE c.[CancellationID] = ?";
         return jdbcTemplate.queryForObject(sql, new Object[]{cancellationID}, (rs, rowNum) -> new RevokeApplicationDTO(
                 UUID.fromString(rs.getString("CancellationID")),
+                UUID.fromString(rs.getString("ApplicationID")),
                 rs.getDate("CancellationDate") != null ? rs.getDate("CancellationDate").toLocalDate().atStartOfDay() : null,
                 UUID.fromString(rs.getString("UserID")),
                 rs.getString("UserName"),
@@ -204,9 +207,10 @@ public class RevokesJdbcRepository {
 
     // 新增：依據 CancellationID 與 NationalID 查 applications 與 application_participants 裡的資料
     public ApplicationParticipantDTO getApplicationDetailByCancellationAndNationalID(String cancellationID, String nationalID) {
-        String sql = "SELECT ap.[NationalID], ap.[Name], ap.[Gender], ap.[RelationShip], ap.[Occupation], ap.[PhoneNumber], ap.[HouseholdAddress], ap.[MailingAddress], ap.[Email], ap.[BirthDate], ap.[IsSuspended], ap.[SuspendEnd] FROM [dbo].[cancellation] c LEFT JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] LEFT JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] WHERE c.[CancellationID] = ? AND ap.[NationalID] = ?";
+        String sql = "SELECT  ap.[ApplicationID],   ap.[NationalID], ap.[Name], ap.[Gender], ap.[RelationShip], ap.[Occupation], ap.[PhoneNumber], ap.[HouseholdAddress], ap.[MailingAddress], ap.[Email], ap.[BirthDate], ap.[IsSuspended], ap.[SuspendEnd] FROM [dbo].[cancellation] c LEFT JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] LEFT JOIN [dbo].[application_participants] ap ON a.[ApplicationID] = ap.[ApplicationID] WHERE c.[CancellationID] = ? AND ap.[NationalID] = ?";
         return jdbcTemplate.queryForObject(sql, new Object[]{cancellationID, nationalID}, (rs, rowNum) -> {
             ApplicationParticipantDTO dto = new ApplicationParticipantDTO();
+            dto.applicationID = UUID.fromString(rs.getString("ApplicationID"));
             dto.participantType = "0"; // Child participant type
             dto.nationalID = rs.getString("NationalID");
             dto.name = rs.getString("Name");
@@ -227,7 +231,7 @@ public class RevokesJdbcRepository {
     // 新增：更新撤銷聲請的確認日期
     public int updateConfirmDate(String cancellationID, LocalDate confirmDate) {
         String sql = "UPDATE [dbo].[cancellation] SET [ConfirmDate] = ? WHERE [CancellationID] = ?";
-        return jdbcTemplate.update(sql, confirmDate, cancellationID);
+        return jdbcTemplate.update(sql, confirmDate, cancellationID.toUpperCase());
     }
 
     // 新增：插入一筆 cancellation 紀錄，回傳生成的 CancellationID
@@ -247,5 +251,15 @@ public class RevokesJdbcRepository {
             System.out.println("No application_participants row matched for ApplicationID=" + applicationID + ", NationalID=" + nationalID);
         }
         // method intentionally returns void
+    }
+
+    // 新增：更新 application_participants 的 Status
+    public int updateApplicationParticipantStatus(String applicationID, String nationalID, String status) {
+        String updateStatusSql = "UPDATE [dbo].[application_participants] SET [Status] = ? WHERE [ApplicationID] = ? AND [NationalID] = ?";
+        int updateCount = jdbcTemplate.update(updateStatusSql, status, applicationID, nationalID);
+        if (updateCount == 0) {
+            System.out.println("No application_participants row matched for ApplicationID=" + applicationID + ", NationalID=" + nationalID);
+        }
+        return updateCount;
     }
 }

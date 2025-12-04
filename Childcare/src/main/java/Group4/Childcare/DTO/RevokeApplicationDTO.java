@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 public class RevokeApplicationDTO {
     private UUID cancellationID;
+    private UUID applicationID;
     private LocalDateTime cancellationDate;
     private UUID userID;
     private String userName;
@@ -13,8 +14,9 @@ public class RevokeApplicationDTO {
     private String abandonReason;
     private String nationalID;
 
-    public RevokeApplicationDTO(UUID cancellationID, LocalDateTime cancellationDate, UUID userID, String userName, UUID institutionID, String institutionName, String abandonReason, String nationalID) {
+    public RevokeApplicationDTO(UUID cancellationID, UUID applicationID, LocalDateTime cancellationDate, UUID userID, String userName, UUID institutionID, String institutionName, String abandonReason, String nationalID) {
         this.cancellationID = cancellationID;
+        this.applicationID = applicationID;
         this.cancellationDate = cancellationDate;
         this.userID = userID;
         this.userName = userName;
@@ -25,6 +27,7 @@ public class RevokeApplicationDTO {
     }
 
     public UUID getCancellationID() { return cancellationID; }
+    public UUID getApplicationID() { return applicationID; }
     public LocalDateTime getCancellationDate() { return cancellationDate; }
     public UUID getUserID() { return userID; }
     public String getUserName() { return userName; }

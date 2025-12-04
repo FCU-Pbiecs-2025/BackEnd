@@ -154,6 +154,27 @@ public class RevokeController {
         }
     }
 
+    // PUT: 更新 application_participants 的 Status（根據 ApplicationID 與 NationalID）
+    @PutMapping("/update-participant-status")
+    public ResponseEntity<Object> updateParticipantStatus(@RequestBody Map<String, String> req) {
+        String applicationID = req != null ? req.get("ApplicationID") : null;
+        String nationalID = req != null ? req.get("NationalID") : null;
+        String status = req != null ? req.get("Status") : null;
+        if (applicationID == null || applicationID.isEmpty() || nationalID == null || nationalID.isEmpty() || status == null || status.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "ApplicationID, NationalID 與 Status 為必填"));
+        }
+        try {
+            int updated = revokeService.updateApplicationParticipantStatus(applicationID, nationalID, status);
+            if (updated > 0) {
+                return ResponseEntity.ok(Map.of("success", true, "updated", updated));
+            } else {
+                return ResponseEntity.status(404).body(Map.of("error", "找不到對應資料"));
+            }
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
     // 新增 POST API：建立一筆 cancellation 紀錄
     @PostMapping("/create")
     public ResponseEntity<Object> createCancellation(@RequestBody CreateRevokeRequest req) {

@@ -52,6 +52,11 @@ public class RevokeService {
         return revokesJdbcRepository.updateConfirmDate(cancellationID, confirmDate);
     }
 
+    // 新增：更新 application_participants 的 Status
+    public int updateApplicationParticipantStatus(String applicationID, String nationalID, String status) {
+        return revokesJdbcRepository.updateApplicationParticipantStatus(applicationID, nationalID, status);
+    }
+
     // 新增：建立一筆 cancellation 並回傳 CancellationID
     public void createCancellation(String applicationID, String abandonReason, String nationalID) {
         LocalDate today = LocalDate.now();
