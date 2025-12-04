@@ -139,16 +139,16 @@ public class ApplicationsService {
    * @param institutionId 機構ID（可選）
    * @param applicationId 案件ID（可選）
    * @param classId 班級ID（可選）
-   * @param applicantNationalId 申請人身分證字號（可選）
+   * @param childNationalId 幼兒身分證字號（可選）
    * @param caseNumber 案件流水號（可選）
    * @param identityType 身分別（可選）
    * @return List<CaseOffsetListDTO>
    */
   public List<CaseOffsetListDTO> getCaseListWithOffset(int offset, int limit, String status, UUID institutionId,
-                                                       UUID applicationId, UUID classId, String applicantNationalId,
+                                                       UUID applicationId, UUID classId, String childNationalId,
                                                        Long caseNumber, String identityType) {
     return applicationsJdbcRepository.findCaseListWithOffset(offset, limit, status, institutionId,
-            applicationId, classId, applicantNationalId,
+            applicationId, classId, childNationalId,
             caseNumber, identityType);
   }
 
@@ -158,15 +158,15 @@ public class ApplicationsService {
    * @param institutionId 機構ID（可選）
    * @param applicationId 案件ID（可選）
    * @param classId 班級ID（可選）
-   * @param applicantNationalId 申請人身分證字號（可選）
+   * @param childNationalId 幼兒身分證字號（可選）
    * @param caseNumber 案件流水號（可選）
    * @param identityType 身分別（可選）
    * @return 總筆數
    */
   public long countCaseList(String status, UUID institutionId, UUID applicationId, UUID classId,
-                            String applicantNationalId, Long caseNumber, String identityType) {
+                            String childNationalId, Long caseNumber, String identityType) {
     return applicationsJdbcRepository.countCaseList(status, institutionId, applicationId, classId,
-            applicantNationalId, caseNumber, identityType);
+            childNationalId, caseNumber, identityType);
   }
 
   /**

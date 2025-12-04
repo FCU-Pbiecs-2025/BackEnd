@@ -402,7 +402,7 @@ public class ApplicationsJdbcRepository {
    * @return List<CaseOffsetListDTO>
    */
   public List<CaseOffsetListDTO> findCaseListWithOffset(int offset, int limit, String status, UUID institutionId,
-                                                        UUID applicationId, UUID classId, String applicantNationalId,
+                                                        UUID applicationId, UUID classId, String childNationalId,
                                                         Long caseNumber, String identityType) {
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT ")
@@ -448,9 +448,9 @@ public class ApplicationsJdbcRepository {
       params.add(classId.toString());
     }
 
-    if (applicantNationalId != null && !applicantNationalId.isEmpty()) {
-      sql.append("AND u.NationalID = ? ");
-      params.add(applicantNationalId);
+    if (childNationalId != null && !childNationalId.isEmpty()) {
+      sql.append("AND ap.NationalID = ? ");
+      params.add(childNationalId);
     }
 
     if (caseNumber != null) {
@@ -523,13 +523,13 @@ public class ApplicationsJdbcRepository {
    * @param institutionId 機構ID（可選）
    * @param applicationId 案件ID（可選）
    * @param classId 班級ID（可選）
-   * @param applicantNationalId 申請人身分證字號（可選）
+   * @param childNationalId 幼兒身分證字號（可選）
    * @param caseNumber 案件流水號（可選）
    * @param identityType 身分別（可選）
    * @return 總筆數
    */
   public long countCaseList(String status, UUID institutionId, UUID applicationId, UUID classId,
-                            String applicantNationalId, Long caseNumber, String identityType) {
+                            String childNationalId, Long caseNumber, String identityType) {
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT COUNT(DISTINCT a.ApplicationID) ")
             .append("FROM applications a ")
@@ -560,9 +560,9 @@ public class ApplicationsJdbcRepository {
       params.add(classId.toString());
     }
 
-    if (applicantNationalId != null && !applicantNationalId.isEmpty()) {
-      sql.append("AND u.NationalID = ? ");
-      params.add(applicantNationalId);
+    if (childNationalId != null && !childNationalId.isEmpty()) {
+      sql.append("AND ap.NationalID = ? ");
+      params.add(childNationalId);
     }
 
     if (caseNumber != null) {

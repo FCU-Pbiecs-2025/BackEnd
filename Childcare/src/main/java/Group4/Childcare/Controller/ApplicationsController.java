@@ -897,7 +897,7 @@ public class ApplicationsController {
    * @param institutionId 機構ID篩選（可選）
    * @param applicationId 案件ID篩選（可選）
    * @param classId 班級ID篩選（可選）
-   * @param applicantNationalId 申請人身分證字號篩選（可選）
+   * @param childNationalId 申請之幼兒身分證字號篩選（可選）
    * @param caseNumber 案件流水號篩選（可選）
    * @param identityType 身分別篩選（可選）
    * @return 包含分頁資訊和案件列表的回應
@@ -1032,7 +1032,7 @@ public class ApplicationsController {
           @RequestParam(required = false) String institutionId,
           @RequestParam(required = false) String applicationId,
           @RequestParam(required = false) String classId,
-          @RequestParam(required = false) String applicantNationalId,
+          @RequestParam(required = false) String childNationalId,
           @RequestParam(required = false) Long caseNumber,
           @RequestParam(required = false) String identityType) {
 
@@ -1082,10 +1082,10 @@ public class ApplicationsController {
 
     // 取得案件列表和總筆數
     List<CaseOffsetListDTO> content = service.getCaseListWithOffset(offset, size, status, institutionUUID,
-            applicationUUID, classUUID, applicantNationalId,
+            applicationUUID, classUUID, childNationalId,
             caseNumber, identityType);
     long totalElements = service.countCaseList(status, institutionUUID, applicationUUID, classUUID,
-            applicantNationalId, caseNumber, identityType);
+            childNationalId, caseNumber, identityType);
     int totalPages = (int) Math.ceil((double) totalElements / size);
     boolean hasNext = offset + size < totalElements;
 
