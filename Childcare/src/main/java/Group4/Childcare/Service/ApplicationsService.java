@@ -37,6 +37,27 @@ public class ApplicationsService {
     return applicationsRepository.save(entity);
   }
 
+  /**
+   * 生成案件編號
+   * 格式：YYYYMMDD + 4位流水號，如 202412040001
+   * 流水號為符合日期格式的總案件數 + 1
+   * @return 新的案件編號
+   */
+  public Long generateCaseNumber() {
+    java.time.LocalDate today = java.time.LocalDate.now();
+    // 生成日期前綴：YYYYMMDD
+    long datePrefix = today.getYear() * 10000L + today.getMonthValue() * 100L + today.getDayOfMonth();
+
+    // 查詢符合日期格式的總案件數
+    long totalCount = applicationsJdbcRepository.countCaseNumberWithDateFormat();
+
+    // 流水號 = 總案件數 + 1，格式化為4位數
+    long sequenceNumber = totalCount + 1;
+
+    // 組合案件編號：YYYYMMDD + 4位流水號
+    return datePrefix * 10000 + sequenceNumber;
+  }
+
   public Optional<Applications> getById(UUID id) {
     return applicationsRepository.findById(id);
   }

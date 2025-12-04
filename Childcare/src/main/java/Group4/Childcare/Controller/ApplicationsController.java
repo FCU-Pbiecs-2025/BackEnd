@@ -394,7 +394,17 @@ public class ApplicationsController {
       // 從 caseDto 中設置必要的資訊
       newApplication.setApplicationDate(caseDto.getApplyDate() != null ?
               caseDto.getApplyDate() : java.time.LocalDate.now());
-      newApplication.setCaseNumber(caseDto.getCaseNumber());
+
+      // 如果前端沒有傳入 caseNumber，則自動生成
+      // 格式：YYYYMMDD + 4位流水號，如 202412040001
+      if (caseDto.getCaseNumber() == null) {
+        Long generatedCaseNumber = service.generateCaseNumber();
+        newApplication.setCaseNumber(generatedCaseNumber);
+        System.out.println("Generated CaseNumber: " + generatedCaseNumber);
+      } else {
+        newApplication.setCaseNumber(caseDto.getCaseNumber());
+      }
+
       newApplication.setInstitutionID(caseDto.getInstitutionId());
       newApplication.setIdentityType(caseDto.getIdentityType() != null ?
               caseDto.getIdentityType().byteValue() : (byte)0);

@@ -324,6 +324,18 @@ public class ApplicationsJdbcRepository {
     return count != null ? count : 0;
   }
 
+  /**
+   * 查詢資料庫中符合日期格式(YYYYMMDD+4位流水號)的案件總數
+   * 案件編號格式：YYYYMMDD + 4位流水號，如 202412040001
+   * @return 符合格式的案件總數
+   */
+  public long countCaseNumberWithDateFormat() {
+    // 查詢 CaseNumber >= 100000000000 (12位數，代表符合 YYYYMMDD+4位流水號格式)
+    String sql = "SELECT COUNT(*) FROM " + TABLE_NAME + " WHERE CaseNumber >= 100000000000";
+    Long count = jdbcTemplate.queryForObject(sql, Long.class);
+    return count != null ? count : 0;
+  }
+
   public List<ApplicationSummaryWithDetailsDTO> findSummariesWithOffset(int offset, int limit) {
     // 以 application_participants 為主體，每一列代表一個幼兒參與者
     String sql =

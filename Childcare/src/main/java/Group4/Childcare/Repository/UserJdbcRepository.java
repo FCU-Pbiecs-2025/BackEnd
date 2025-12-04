@@ -304,6 +304,21 @@ public class UserJdbcRepository {
             throw new RuntimeException("Failed to update user profile", e);
         }
     }
+
+    /**
+     * 根據 Email 查詢使用者
+     * @param email 使用者 Email
+     * @return 使用者資料
+     */
+    public Optional<Users> findByEmail(String email) {
+        String sql = "SELECT * FROM " + TABLE_NAME + " WHERE Email = ?";
+        try {
+            Users user = jdbcTemplate.queryForObject(sql, USERS_ROW_MAPPER, email);
+            return Optional.ofNullable(user);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
 }
 
 
