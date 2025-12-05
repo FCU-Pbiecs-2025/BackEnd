@@ -344,7 +344,7 @@ public class ApplicationsJdbcRepository {
                         "JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
                         "LEFT JOIN users u ON a.UserID = u.UserID " +
                         "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
-                        "WHERE ap.ParticipantType = 0 " +         // 只取幼兒\n" +
+                        "WHERE ap.ParticipantType = 0 AND ap.Status in ('審核中','需要補件','已退件')  " +         // 只取幼兒\n" +
                         "ORDER BY a.ApplicationDate DESC, ap.CurrentOrder ASC " +
                         "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
@@ -364,7 +364,7 @@ public class ApplicationsJdbcRepository {
                         "LEFT JOIN users u ON a.UserID = u.UserID " +
                         "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
                         "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
-                        "WHERE ap.ParticipantType = 0 "
+                        "WHERE ap.ParticipantType = 0  and ap.Status in ('審核中','需要補件','已退件') "  // 只取幼兒
         );
 
         java.util.List<Object> params = new java.util.ArrayList<>();
@@ -397,6 +397,52 @@ public class ApplicationsJdbcRepository {
         }
 
         sql.append("ORDER BY a.ApplicationDate DESC, a.CaseNumber ASC");
+
+        return jdbcTemplate.query(sql.toString(), params.toArray(), DETAILS_ROW_MAPPER);
+    }
+
+    public List<ApplicationSummaryWithDetailsDTO> revokesearchApplications(String institutionID, String institutionName, String caseNumber, String nationalID) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT c.ApplicationID, c.CancellationDate, c.CaseNumber, c.NationalID " +
+                        "       u.Name AS Name, i.InstitutionName, a.InstitutionID, " +
+                        "       ap.Status, ap.reason, ap.Name AS PName " +
+                        "FROM cancellation c " +
+                        "LEFT JOIN users u ON a.UserID = u.UserID " +
+                        "LEFT JOIN institutions i ON a.InstitutionID = i.InstitutionID " +
+                        "LEFT JOIN application_participants ap ON a.ApplicationID = ap.ApplicationID " +
+                        "WHERE ap.ParticipantType = 0  and ap.Status in ('撤銷申請審核中') "  // 只取幼兒
+        );
+
+        java.util.List<Object> params = new java.util.ArrayList<>();
+
+        // 機構過濾（優先使用 institutionID）
+        if (institutionID != null && !institutionID.trim().isEmpty()) {
+            sql.append("AND a.InstitutionID = ? ");
+            params.add(institutionID.trim());
+        } else if (institutionName != null && !institutionName.trim().isEmpty()) {
+            sql.append("AND i.InstitutionName = ? ");
+            params.add(institutionName.trim());
+        }
+
+        // 流水案號過濾
+        if (caseNumber != null && !caseNumber.trim().isEmpty()) {
+            sql.append("AND a.CaseNumber = ? ");
+            try {
+                // CaseNumber 為數字型（BIGINT），嘗試轉換
+                params.add(Long.parseLong(caseNumber.trim()));
+            } catch (Exception ex) {
+                // 若後端為字串型，則直接帶字串
+                params.add(caseNumber.trim());
+            }
+        }
+
+        // 幼兒身分證過濾（application_participants.NationalID，僅限 ParticipantType=0）
+        if (nationalID != null && !nationalID.trim().isEmpty()) {
+            sql.append("AND c.NationalID = ? ");
+            params.add(nationalID.trim());
+        }
+
+        sql.append("ORDER BY c.CancellationDate DESC, a.CaseNumber ASC");
 
         return jdbcTemplate.query(sql.toString(), params.toArray(), DETAILS_ROW_MAPPER);
     }

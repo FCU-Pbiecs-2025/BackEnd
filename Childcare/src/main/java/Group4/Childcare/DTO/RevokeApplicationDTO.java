@@ -13,8 +13,9 @@ public class RevokeApplicationDTO {
     private String institutionName;
     private String abandonReason;
     private String nationalID;
+    private String caseNumber;
 
-    public RevokeApplicationDTO(UUID cancellationID, UUID applicationID, LocalDateTime cancellationDate, UUID userID, String userName, UUID institutionID, String institutionName, String abandonReason, String nationalID) {
+    public RevokeApplicationDTO(UUID cancellationID, UUID applicationID, LocalDateTime cancellationDate, UUID userID, String userName, UUID institutionID, String institutionName, String abandonReason, String nationalID, String caseNumber) {
         this.cancellationID = cancellationID;
         this.applicationID = applicationID;
         this.cancellationDate = cancellationDate;
@@ -24,6 +25,7 @@ public class RevokeApplicationDTO {
         this.institutionName = institutionName;
         this.abandonReason = abandonReason;
         this.nationalID = nationalID;
+        this.caseNumber = caseNumber;
     }
 
     public UUID getCancellationID() { return cancellationID; }
@@ -35,4 +37,5 @@ public class RevokeApplicationDTO {
     public String getInstitutionName() { return institutionName; }
     public String getAbandonReason() { return abandonReason; }
     public String getNationalID() { return nationalID; }
+    public String getCaseNumber() { return caseNumber; }
 }

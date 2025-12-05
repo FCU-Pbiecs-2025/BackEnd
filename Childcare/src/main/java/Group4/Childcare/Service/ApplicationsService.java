@@ -143,6 +143,11 @@ public class ApplicationsService {
         return applicationsJdbcRepository.searchApplications(institutionID, institutionName, caseNumber, nationalID);
     }
 
+    // New method to search applications with optional parameters (institution + caseNumber + nationalID)
+    public List<ApplicationSummaryWithDetailsDTO> revokesearchApplications(String institutionID, String institutionName, String caseNumber, String nationalID) {
+        return applicationsJdbcRepository.revokesearchApplications(institutionID, institutionName, caseNumber, nationalID);
+    }
+
   // JDBC 方式查詢單一個案 - changed to return ApplicationCaseDTO
   public Optional<ApplicationCaseDTO> getApplicationByIdJdbc(UUID id, String nationalID) {
     return applicationsJdbcRepository.findApplicationCaseById(id, nationalID, null);

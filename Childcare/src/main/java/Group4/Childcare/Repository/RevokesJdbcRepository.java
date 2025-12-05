@@ -22,9 +22,9 @@ public class RevokesJdbcRepository {
     public List<RevokeApplicationDTO> findRevokedApplications(int page, int size, String institutionID) {
         StringBuilder sql = new StringBuilder(
                 "SELECT c.[CancellationID], a.[ApplicationID], c.[CancellationDate], " +
-                        "       a.[UserID], u.[Name] AS [UserName], " +
-                        "       a.[InstitutionID], i.[InstitutionName],c.[NationalID], " +
-                        "       c.[AbandonReason] " +
+                        "a.[UserID], u.[Name] AS [UserName], c.[CaseNumber], " +
+                        "a.[InstitutionID], i.[InstitutionName], c.[NationalID], " +
+                        "c.[AbandonReason] " +
                         "FROM [dbo].[cancellation] c " +
                         "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
                         "JOIN [dbo].[application_participants] ap ON c.[ApplicationID] = ap.[ApplicationID] and c.[NationalID]=ap.[NationalID] " +
@@ -53,7 +53,8 @@ public class RevokesJdbcRepository {
                 UUID.fromString(rs.getString("InstitutionID")),
                 rs.getString("InstitutionName"),
                 rs.getString("AbandonReason"),
-                rs.getString("NationalID")
+                rs.getString("NationalID"),
+                rs.getString("CaseNumber")
         );
         }, params.toArray());
     }
@@ -83,8 +84,8 @@ public class RevokesJdbcRepository {
     public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String cancellationID, String nationalID, int page, int size, String institutionID) {
         StringBuilder sql = new StringBuilder(
             "SELECT c.[CancellationID], a.[ApplicationID], c.[CancellationDate], " +
-            "a.[UserID], u.[Name] AS [UserName], " +
-            "a.[InstitutionID], i.[InstitutionName],c.[NationalID], " +
+            "a.[UserID], u.[Name] AS [UserName], c.[CaseNumber], " +
+            "a.[InstitutionID], i.[InstitutionName], c.[NationalID], " +
             "c.[AbandonReason] " +
             "FROM [dbo].[cancellation] c " +
             "JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] " +
@@ -126,7 +127,8 @@ public class RevokesJdbcRepository {
             UUID.fromString(rs.getString("InstitutionID")),
             rs.getString("InstitutionName"),
             rs.getString("AbandonReason"),
-            rs.getString("NationalID")
+            rs.getString("NationalID"),
+            rs.getString("CaseNumber")
         );
         }, params.toArray());
     }
@@ -169,7 +171,7 @@ public class RevokesJdbcRepository {
 
     // 新增：根據 CancellationID 取得撤銷資料（含基本欄位）
     public RevokeApplicationDTO getRevokeByCancellationID(String cancellationID) {
-        String sql = "SELECT c.[CancellationID],c.[ApplicationID], c.[CancellationDate], a.[UserID], u.[Name] AS [UserName], a.[InstitutionID], i.[InstitutionName], c.[AbandonReason], c.[NationalID] FROM [dbo].[cancellation] c JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] WHERE c.[CancellationID] = ?";
+        String sql = "SELECT c.[CancellationID],c.[ApplicationID], c.[CancellationDate], a.[UserID], u.[Name] AS [UserName], a.[InstitutionID], i.[InstitutionName], c.[AbandonReason], c.[NationalID], c.[CaseNumber] FROM [dbo].[cancellation] c JOIN [dbo].[applications] a ON c.[ApplicationID] = a.[ApplicationID] JOIN [dbo].[users] u ON a.[UserID] = u.[UserID] JOIN [dbo].[institutions] i ON a.[InstitutionID] = i.[InstitutionID] WHERE c.[CancellationID] = ?";
         return jdbcTemplate.queryForObject(sql, new Object[]{cancellationID}, (rs, rowNum) -> new RevokeApplicationDTO(
                 UUID.fromString(rs.getString("CancellationID")),
                 UUID.fromString(rs.getString("ApplicationID")),
@@ -179,7 +181,8 @@ public class RevokesJdbcRepository {
                 UUID.fromString(rs.getString("InstitutionID")),
                 rs.getString("InstitutionName"),
                 rs.getString("AbandonReason"),
-                rs.getString("NationalID")
+                rs.getString("NationalID"),
+                rs.getString("CaseNumber")
         ));
     }
 

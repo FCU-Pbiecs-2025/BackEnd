@@ -232,6 +232,32 @@ public class ClassesJdbcRepository {
     }
 
     /**
+     * 使用offset分頁查詢，根據機構 ID 過濾（admin 角色使用）
+     * @param offset 分頁偏移量
+     * @param limit 每頁筆數
+     * @param institutionID 機構 ID
+     * @return 班級列表
+     */
+    public List<ClassSummaryDTO> findWithOffsetAndInstitutionNameByInstitutionID(int offset, int limit, UUID institutionID) {
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
+                     "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID " +
+                     "WHERE c.InstitutionID = ? " +
+                     "ORDER BY c.ClassID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        return jdbcTemplate.query(sql, CLASS_SUMMARY_ROW_MAPPER, institutionID.toString(), offset, limit);
+    }
+
+    /**
+     * 取得指定機構的班級總數（用於分頁計算）
+     * @param institutionID 機構 ID
+     * @return 班級總數
+     */
+    public long countByInstitutionID(UUID institutionID) {
+        String sql = "SELECT COUNT(*) FROM " + TABLE_NAME + " WHERE InstitutionID = ?";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, institutionID.toString());
+        return count != null ? count : 0;
+    }
+
+    /**
      * 依機構名稱模糊搜尋，返回機構及其班級資料
      * @param institutionName 機構名稱關鍵字
      * @return List<Map<String, Object>>，包含機構資料和班級列表

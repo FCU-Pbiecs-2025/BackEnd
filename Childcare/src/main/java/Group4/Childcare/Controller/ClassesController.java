@@ -53,9 +53,33 @@ public class ClassesController {
     @GetMapping("/offset")
     public ResponseEntity<Map<String, Object>> getClassesByOffsetJdbc(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int size) {
-        List<ClassSummaryDTO> classes = service.getClassesWithOffsetAndInstitutionNameJdbc(offset, size);
-        long totalCount = service.getTotalCount();
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) UUID InstitutionID) {
+
+        System.out.println("===== ClassesController.getClassesByOffsetJdbc =====");
+        System.out.println("Received offset: " + offset);
+        System.out.println("Received size: " + size);
+        System.out.println("Received InstitutionID: " + InstitutionID);
+
+        List<ClassSummaryDTO> classes;
+        long totalCount;
+
+        // 根據是否有 InstitutionID 決定查詢方式
+        if (InstitutionID != null) {
+            // admin 角色：只查詢指定機構的班級
+            System.out.println("Querying classes for InstitutionID: " + InstitutionID);
+            classes = service.getClassesWithOffsetAndInstitutionNameByInstitutionID(offset, size, InstitutionID);
+            totalCount = service.getTotalCountByInstitutionID(InstitutionID);
+        } else {
+            // super_admin 角色：查詢所有班級
+            System.out.println("Querying all classes (super_admin)");
+            classes = service.getClassesWithOffsetAndInstitutionNameJdbc(offset, size);
+            totalCount = service.getTotalCount();
+        }
+
+        System.out.println("Query result - Total count: " + totalCount);
+        System.out.println("Query result - Classes size: " + classes.size());
+        System.out.println("==================================================");
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", classes);
@@ -132,17 +156,34 @@ public class ClassesController {
      * 依機構名稱模糊搜尋，返回班級資料（跟 offset 端點相同格式）
      * @param institutionName 機構名稱關鍵字
      * @param offset 分頁偏移量
+     * @param InstitutionID 機構 ID（可選，admin 角色使用）
      * @return 查詢結果 ResponseEntity<Map<String, Object>>
      */
     @GetMapping("/search/institution")
     public ResponseEntity<Map<String, Object>> searchByInstitutionName(
             @RequestParam("name") String institutionName,
-            @RequestParam(defaultValue = "0") int offset) {
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(required = false) UUID InstitutionID) {
         if (institutionName == null || institutionName.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 
+        System.out.println("===== ClassesController.searchByInstitutionName =====");
+        System.out.println("institutionName: " + institutionName);
+        System.out.println("offset: " + offset);
+        System.out.println("InstitutionID: " + InstitutionID);
+
         List<ClassSummaryDTO> allClasses = service.searchClassesByInstitutionName(institutionName.trim());
+
+        // 如果有 InstitutionID，則過濾結果
+        if (InstitutionID != null) {
+            System.out.println("Filtering by InstitutionID: " + InstitutionID);
+            allClasses = allClasses.stream()
+                .filter(cls -> cls.getInstitutionID() != null && cls.getInstitutionID().equals(InstitutionID))
+                .collect(java.util.stream.Collectors.toList());
+        }
+
+        System.out.println("Filtered classes count: " + allClasses.size());
 
         // 手動分頁處理
         int size = 10;
@@ -166,6 +207,7 @@ public class ClassesController {
         response.put("totalPages", totalPages);
         response.put("hasNext", offset + size < totalElements);
 
+        System.out.println("==================================================");
         return ResponseEntity.ok(response);
     }
 

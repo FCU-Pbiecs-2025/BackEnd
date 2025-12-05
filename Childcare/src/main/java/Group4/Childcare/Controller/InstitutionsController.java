@@ -248,13 +248,15 @@ public class InstitutionsController {
    * 取得機構分頁資料
    * @param offset 起始項目索引
    * @param size 每頁大小
+   * @param InstitutionID 機構 ID（可選，admin 角色傳入以過濾特定機構）
    * @return ResponseEntity<InstitutionOffsetDTO>
    */
   @GetMapping("/offset")
   public ResponseEntity<Group4.Childcare.DTO.InstitutionOffsetDTO> getOffset(
           @RequestParam(defaultValue = "0") int offset,
-          @RequestParam(defaultValue = "10") int size) {
+          @RequestParam(defaultValue = "10") int size,
+          @RequestParam(required = false) UUID InstitutionID) {
 
-    return ResponseEntity.ok(service.getOffset(offset, size));
+    return ResponseEntity.ok(service.getOffset(offset, size, InstitutionID));
   }
 }

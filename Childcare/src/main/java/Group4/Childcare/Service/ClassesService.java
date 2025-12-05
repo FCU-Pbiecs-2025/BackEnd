@@ -96,9 +96,19 @@ public class ClassesService {
         return jdbcRepository.findWithOffsetAndInstitutionName(offset, size);
     }
 
+    // 使用JDBC的offset分頁方法，根據機構 ID 過濾（admin 角色使用）
+    public List<ClassSummaryDTO> getClassesWithOffsetAndInstitutionNameByInstitutionID(int offset, int size, UUID institutionID) {
+        return jdbcRepository.findWithOffsetAndInstitutionNameByInstitutionID(offset, size, institutionID);
+    }
+
     // 取得總筆數用於分頁計算
     public long getTotalCount() {
         return jdbcRepository.countTotal();
+    }
+
+    // 取得指定機構的班級總數用於分頁計算（admin 角色使用）
+    public long getTotalCountByInstitutionID(UUID institutionID) {
+        return jdbcRepository.countByInstitutionID(institutionID);
     }
 
     /**

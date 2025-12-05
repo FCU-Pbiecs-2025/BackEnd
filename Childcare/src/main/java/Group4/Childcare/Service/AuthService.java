@@ -48,8 +48,26 @@ public class AuthService {
             return result;
         }
 
+        // 建立使用者資訊 Map，確保所有必要欄位都包含（即使是 null）
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("UserID", user.getUserID() != null ? user.getUserID().toString() : null);
+        userInfo.put("account", user.getAccount());
+        userInfo.put("Account", user.getAccount()); // 相容舊版
+        userInfo.put("Name", user.getName());
+        userInfo.put("name", user.getName()); // 相容前端小寫
+        userInfo.put("Email", user.getEmail());
+        userInfo.put("email", user.getEmail()); // 相容前端小寫
+        userInfo.put("PhoneNumber", user.getPhoneNumber());
+        userInfo.put("phoneNumber", user.getPhoneNumber()); // 相容前端小寫
+        userInfo.put("PermissionType", user.getPermissionType());
+        userInfo.put("permissionType", user.getPermissionType()); // 相容前端小寫
+        userInfo.put("InstitutionID", user.getInstitutionID() != null ? user.getInstitutionID().toString() : null); // 確保包含此欄位
+        userInfo.put("institutionID", user.getInstitutionID() != null ? user.getInstitutionID().toString() : null); // 小寫版本
+        userInfo.put("FamilyInfoID", user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null);
+        userInfo.put("familyInfoID", user.getFamilyInfoID() != null ? user.getFamilyInfoID().toString() : null); // 小寫版本
+
         result.put("success", true);
-        result.put("user", user);
+        result.put("user", userInfo);
         return result;
     }
 

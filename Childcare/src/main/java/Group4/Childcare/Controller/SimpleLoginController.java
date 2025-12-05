@@ -80,7 +80,7 @@ public class SimpleLoginController {
         userInfo.put("phone", user.getPhoneNumber());
         userInfo.put("account", user.getAccount());
         userInfo.put("FamilyInfoID", user.getFamilyInfoID());
-
+        userInfo.put("InstitutionID", user.getInstitutionID());
         result.put("success", true);
         result.put("message", "登入成功");
         result.put("user", userInfo);

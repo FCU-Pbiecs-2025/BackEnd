@@ -125,6 +125,17 @@ public class ApplicationsController {
       return ResponseEntity.ok(result);
   }
 
+    @GetMapping("/revoke_search")
+    public ResponseEntity<List<ApplicationSummaryWithDetailsDTO>> searchRevokeApplications(
+            @RequestParam(required = false) String institutionID,
+            @RequestParam(required = false) String institutionName,
+            @RequestParam(required = false) String CaseNumber,
+            @RequestParam(required = false) String NationalID
+    ) {
+        List<ApplicationSummaryWithDetailsDTO> result = service.revokesearchApplications(institutionID, institutionName, CaseNumber, NationalID);
+        return ResponseEntity.ok(result);
+    }
+
   /**
    * 根據 ParticipantID 查詢案件詳情
    *

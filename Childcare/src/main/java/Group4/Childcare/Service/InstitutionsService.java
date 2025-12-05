@@ -76,9 +76,10 @@ public class InstitutionsService {
      * 取得機構分頁資料
      * @param offset 起始項目索引
      * @param size 每頁大小
+     * @param institutionID 機構 ID（可選，admin 角色使用）
      * @return InstitutionOffsetDTO
      */
-    public InstitutionOffsetDTO getOffset(int offset, int size) {
+    public InstitutionOffsetDTO getOffset(int offset, int size, UUID institutionID) {
         // 驗證參數
         if (size <= 0) size = 10;
         if (offset < 0) offset = 0;
@@ -86,8 +87,15 @@ public class InstitutionsService {
         // 將 offset 轉換為 page
         int page = offset / size;
 
-        // 查詢分頁資料
-        Page<Institutions> pageResult = repository.findAll(PageRequest.of(page, size));
+        // 根據是否有 institutionID 決定查詢方式
+        Page<Institutions> pageResult;
+        if (institutionID != null) {
+            // admin 角色：只查詢指定機構的資料
+            pageResult = repository.findByInstitutionID(institutionID, PageRequest.of(page, size));
+        } else {
+            // super_admin 角色：查詢所有機構
+            pageResult = repository.findAll(PageRequest.of(page, size));
+        }
 
         // 組建 DTO
         InstitutionOffsetDTO dto = new InstitutionOffsetDTO();
