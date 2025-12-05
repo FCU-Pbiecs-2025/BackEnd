@@ -118,9 +118,11 @@ public class ApplicationsController {
   public ResponseEntity<List<ApplicationSummaryWithDetailsDTO>> searchApplications(
           @RequestParam(required = false) String institutionID,
           @RequestParam(required = false) String institutionName,
-          @RequestParam(required = false) String applicationID) {
-    List<ApplicationSummaryWithDetailsDTO> result = service.searchApplications(institutionID, institutionName, applicationID);
-    return ResponseEntity.ok(result);
+          @RequestParam(required = false) String CaseNumber,
+          @RequestParam(required = false) String NationalID
+  ) {
+      List<ApplicationSummaryWithDetailsDTO> result = service.searchApplications(institutionID, institutionName, CaseNumber, NationalID);
+      return ResponseEntity.ok(result);
   }
 
   /**

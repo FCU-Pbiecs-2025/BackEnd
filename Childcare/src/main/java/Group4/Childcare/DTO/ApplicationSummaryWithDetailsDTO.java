@@ -16,4 +16,5 @@ public class ApplicationSummaryWithDetailsDTO {
     private String PName;
     private String NationalID;
     private String ParticipantType;
+    private Long caseNumber;
 }
