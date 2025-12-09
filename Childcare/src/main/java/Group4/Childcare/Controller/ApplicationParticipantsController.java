@@ -35,8 +35,12 @@ public class ApplicationParticipantsController {
         return ResponseEntity.ok(service.getAll());
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApplicationParticipants> update(@PathVariable UUID id, @RequestBody ApplicationParticipants entity) {
-        return ResponseEntity.ok(service.update(id, entity));
+    @PutMapping("/{participantID}")
+    public ResponseEntity<ApplicationParticipants> update(
+            @PathVariable UUID participantID,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String reason,
+            @RequestParam(required = false) UUID classID) {
+        return ResponseEntity.ok(service.updateParticipant(participantID, status, reason, classID));
     }
 }

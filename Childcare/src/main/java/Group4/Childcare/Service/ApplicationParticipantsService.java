@@ -33,4 +33,17 @@ public class ApplicationParticipantsService {
         entity.setApplicationID(id);
         return repository.save(entity);
     }
+
+    public ApplicationParticipants updateParticipant(UUID participantID, String status, String reason, UUID classID) {
+        Optional<ApplicationParticipants> existingEntity = repository.findById(participantID);
+        if (existingEntity.isPresent()) {
+            ApplicationParticipants participant = existingEntity.get();
+            participant.setStatus(status);
+            participant.setReason(reason);
+            participant.setClassID(classID);
+            return repository.save(participant);
+        } else {
+            throw new RuntimeException("Participant not found with ID: " + participantID);
+        }
+    }
 }
