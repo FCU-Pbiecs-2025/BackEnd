@@ -710,9 +710,24 @@ public class ApplicationsController {
    *  - reason: 拒絕原因 (可為 null)
    *  - applicationId, applicationDate, institutionName: 只讀欄位 (會被查詢時覆蓋)
    *
+   * CurrentOrder 自動管理機制（僅針對幼兒 ParticipantType=0）：
+   *  - 當狀態改為「候補中」：
+   *    1. 自動查詢同機構的最大 CurrentOrder 值
+   *    2. 設置為 maxOrder + 1（若無記錄則設為 1）
+   *  - 當狀態從「候補中」改為其他狀態（如「已錄取」）：
+   *    1. 將該幼兒的 CurrentOrder 設為 null
+   *    2. 自動遞補：將同機構所有 CurrentOrder > 當前值的幼兒順序減 1
+   *  - 注意：家長（ParticipantType=1）不會設置 CurrentOrder
+   *
    * 回傳值：
    *  - 若提供 NationalID：回傳 ApplicationCaseDTO (只包含該參與者)，其中 parents 包含所有家長，children 只包含指定身分證的幼兒
    *  - 若未提供 NationalID：回傳 HTTP 204 No Content
+   *
+   * 範例使用：
+   *  1. 單一幼兒審核為候補：PUT /applications/{id}/case?NationalID=A123456789&status=候補中
+   *     → 系統自動分配 CurrentOrder（如 5）
+   *  2. 將候補中的幼兒改為已錄取：PUT /applications/{id}/case?NationalID=A123456789&status=已錄取
+   *     → 系統自動將後面的候補（CurrentOrder 6,7,8...）遞補為 5,6,7...
    * */
   @PutMapping("/{id}/case")
   public ResponseEntity<?> updateApplicationCase(

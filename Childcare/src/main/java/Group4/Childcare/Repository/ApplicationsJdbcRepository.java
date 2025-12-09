@@ -503,28 +503,39 @@ public class ApplicationsJdbcRepository {
     public void updateParticipantStatusReason(UUID id, String nationalID, String status, String reason, java.time.LocalDateTime reviewDate) {
         System.out.println("[DEBUG updateParticipantStatusReason] ApplicationID: " + id + ", NationalID: " + nationalID + ", Status: " + status);
 
+        // 先查詢該參與者的當前狀態和 CurrentOrder
+        String getCurrentInfoSql = "SELECT Status, CurrentOrder, ParticipantType FROM application_participants WHERE ApplicationID = ? AND NationalID = ?";
+        String oldStatus = null;
+        Integer oldCurrentOrder = null;
+        Boolean isChild = null;
+
+        try {
+            // 使用 Map 來存儲結果
+            java.util.Map<String, Object> currentInfo = jdbcTemplate.queryForMap(getCurrentInfoSql, id.toString(), nationalID);
+            oldStatus = (String) currentInfo.get("Status");
+            Object currentOrderObj = currentInfo.get("CurrentOrder");
+            if (currentOrderObj != null) {
+                oldCurrentOrder = ((Number) currentOrderObj).intValue();
+            }
+            Object participantTypeObj = currentInfo.get("ParticipantType");
+            if (participantTypeObj != null) {
+                if (participantTypeObj instanceof Boolean) {
+                    isChild = !(Boolean) participantTypeObj;
+                } else if (participantTypeObj instanceof Number) {
+                    isChild = ((Number) participantTypeObj).intValue() == 0;
+                }
+            }
+
+            System.out.println("[DEBUG] 查詢當前資料 - 舊狀態: " + oldStatus + ", 舊CurrentOrder: " + oldCurrentOrder + ", isChild: " + isChild);
+        } catch (Exception ex) {
+            System.out.println("[ERROR] 無法查詢當前資料: " + ex.getMessage());
+        }
+
         Integer currentOrder = null;
 
-        // 如果狀態為"候補中"，檢查並設置CurrentOrder
+        // 情況1: 如果狀態改為"候補中"，設置新的 CurrentOrder
         if (status != null && "候補中".equals(status)) {
             System.out.println("[DEBUG] 狀態為候補中，開始處理 CurrentOrder");
-
-            // 先檢查該參與者是否為幼兒（ParticipantType = 0）
-            String checkParticipantTypeSql = "SELECT ParticipantType FROM application_participants WHERE ApplicationID = ? AND NationalID = ?";
-            Boolean isChild = null;
-            try {
-                Object participantTypeObj = jdbcTemplate.queryForObject(checkParticipantTypeSql, Object.class, id.toString(), nationalID);
-                if (participantTypeObj != null) {
-                    if (participantTypeObj instanceof Boolean) {
-                        isChild = !(Boolean) participantTypeObj; // false = 幼兒
-                    } else if (participantTypeObj instanceof Number) {
-                        isChild = ((Number) participantTypeObj).intValue() == 0;
-                    }
-                }
-                System.out.println("[DEBUG] ParticipantType 查詢結果: " + participantTypeObj + ", isChild: " + isChild);
-            } catch (Exception ex) {
-                System.out.println("[ERROR] 無法查詢 ParticipantType: " + ex.getMessage());
-            }
 
             if (isChild != null && isChild) {
                 // 獲取該申請案件的InstitutionID
@@ -547,7 +558,7 @@ public class ApplicationsJdbcRepository {
                         "INNER JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
                         "WHERE a.InstitutionID = ? " +
                         "AND ap.CurrentOrder IS NOT NULL " +
-                        "AND ap.ParticipantType = 0";  // 只檢查幼兒記錄
+                        "AND ap.ParticipantType = 0";
 
                     Integer maxOrder = null;
                     try {
@@ -557,7 +568,6 @@ public class ApplicationsJdbcRepository {
                         System.out.println("[DEBUG] 無法查詢最大 CurrentOrder (可能沒有記錄): " + ex.getMessage());
                     }
 
-                    // 如果沒有任何CurrentOrder，則設置為1；否則設置為最大值+1
                     if (maxOrder == null) {
                         currentOrder = 1;
                         System.out.println("[DEBUG] 設置 CurrentOrder = 1 (首個候補)");
@@ -570,13 +580,54 @@ public class ApplicationsJdbcRepository {
                 System.out.println("[DEBUG] 非幼兒記錄，不設置 CurrentOrder");
             }
         }
+        // 情況2: 如果原本是"候補中"且有 CurrentOrder，現在改為其他狀態（如已錄取），需要遞補後面的 CurrentOrder
+        else if (oldStatus != null && "候補中".equals(oldStatus) && oldCurrentOrder != null && isChild != null && isChild) {
+            System.out.println("[DEBUG] 從候補中變更為其他狀態，需要遞補後面的 CurrentOrder");
+
+            // 獲取該申請案件的InstitutionID
+            String getInstitutionIdSql = "SELECT InstitutionID FROM applications WHERE ApplicationID = ?";
+            java.util.UUID institutionId = null;
+            try {
+                String institutionIdStr = jdbcTemplate.queryForObject(getInstitutionIdSql, String.class, id.toString());
+                if (institutionIdStr != null) {
+                    institutionId = java.util.UUID.fromString(institutionIdStr);
+                    System.out.println("[DEBUG] InstitutionID: " + institutionId);
+                }
+            } catch (Exception ex) {
+                System.out.println("[ERROR] 無法獲取 InstitutionID: " + ex.getMessage());
+            }
+
+            if (institutionId != null) {
+                // 將該個案後面所有的 CurrentOrder 減 1
+                String updateFollowingOrdersSql =
+                    "UPDATE application_participants " +
+                    "SET CurrentOrder = CurrentOrder - 1 " +
+                    "WHERE ParticipantType = 0 " +
+                    "AND CurrentOrder > ? " +
+                    "AND ApplicationID IN ( " +
+                    "  SELECT ApplicationID FROM applications WHERE InstitutionID = ? " +
+                    ")";
+
+                try {
+                    int updatedCount = jdbcTemplate.update(updateFollowingOrdersSql, oldCurrentOrder, institutionId.toString());
+                    System.out.println("[DEBUG] 遞補完成：將 CurrentOrder > " + oldCurrentOrder + " 的 " + updatedCount + " 筆記錄減 1");
+                } catch (Exception ex) {
+                    System.out.println("[ERROR] 遞補 CurrentOrder 失敗: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+            }
+
+            // 將當前個案的 CurrentOrder 設為 null（因為已不在候補狀態）
+            currentOrder = null;
+            System.out.println("[DEBUG] 將當前個案的 CurrentOrder 設為 null");
+        }
 
         String sql = "UPDATE application_participants SET Status = ?, Reason = ?, ReviewDate = ?, CurrentOrder = ? WHERE ApplicationID = ? AND NationalID = ?";
         java.sql.Timestamp ts = null;
         if (reviewDate != null) ts = java.sql.Timestamp.valueOf(reviewDate);
         try {
             int rowsAffected = jdbcTemplate.update(sql, status, reason, ts, currentOrder, id.toString(), nationalID);
-            System.out.println("[DEBUG] 更新完成，影響行數: " + rowsAffected + ", CurrentOrder: " + currentOrder);
+            System.out.println("[DEBUG] 更新完成，影響行數: " + rowsAffected + ", 新 CurrentOrder: " + currentOrder);
         } catch (Exception ex) {
             System.out.println("[ERROR] 更新失敗: " + ex.getMessage());
             ex.printStackTrace();
