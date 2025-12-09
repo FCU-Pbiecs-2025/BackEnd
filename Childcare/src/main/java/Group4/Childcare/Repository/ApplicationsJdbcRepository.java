@@ -277,6 +277,59 @@ public class ApplicationsJdbcRepository {
                 java.sql.Timestamp reviewTs = null;
                 if (p.reviewDate != null) reviewTs = java.sql.Timestamp.valueOf(p.reviewDate);
 
+                // 如果狀態為"候補中"且為幼兒，檢查並設置CurrentOrder
+                boolean isChild = (participantType != null && participantType == false) ||
+                                  (p.participantType != null && ("幼兒".equals(p.participantType) || "0".equals(p.participantType)));
+
+                if (p.status != null && "候補中".equals(p.status) && isChild) {
+                    System.out.println("[DEBUG] 處理候補中的幼兒 - NationalID: " + p.nationalID + ", Status: " + p.status);
+
+                    // 獲取該申請案件的InstitutionID
+                    String getInstitutionIdSql = "SELECT InstitutionID FROM applications WHERE ApplicationID = ?";
+                    java.util.UUID institutionId = null;
+                    try {
+                        String institutionIdStr = jdbcTemplate.queryForObject(getInstitutionIdSql, String.class, id.toString());
+                        if (institutionIdStr != null) {
+                            institutionId = java.util.UUID.fromString(institutionIdStr);
+                            System.out.println("[DEBUG] InstitutionID: " + institutionId);
+                        }
+                    } catch (Exception ex) {
+                        System.out.println("[ERROR] 無法獲取 InstitutionID: " + ex.getMessage());
+                    }
+
+                    if (institutionId != null) {
+                        // 查詢同機構的最大CurrentOrder值
+                        String getMaxOrderSql =
+                            "SELECT MAX(ap.CurrentOrder) FROM application_participants ap " +
+                            "INNER JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
+                            "WHERE a.InstitutionID = ? " +
+                            "AND ap.CurrentOrder IS NOT NULL " +
+                            "AND ap.ParticipantType = 0";  // 只檢查幼兒記錄
+
+                        Integer maxOrder = null;
+                        try {
+                            maxOrder = jdbcTemplate.queryForObject(getMaxOrderSql, Integer.class, institutionId.toString());
+                            System.out.println("[DEBUG] 查詢到的最大 CurrentOrder: " + maxOrder);
+                        } catch (Exception ex) {
+                            System.out.println("[DEBUG] 無法查詢最大 CurrentOrder (可能沒有記錄): " + ex.getMessage());
+                        }
+
+                        // 如果沒有任何CurrentOrder，則設置為1；否則設置為最大值+1
+                        if (maxOrder == null) {
+                            p.currentOrder = 1;
+                            System.out.println("[DEBUG] 設置 CurrentOrder = 1 (首個候補)");
+                        } else {
+                            p.currentOrder = maxOrder + 1;
+                            System.out.println("[DEBUG] 設置 CurrentOrder = " + p.currentOrder + " (maxOrder + 1)");
+                        }
+                    }
+                } else {
+                    System.out.println("[DEBUG] 跳過 CurrentOrder 設置 - NationalID: " + p.nationalID +
+                                     ", Status: " + p.status +
+                                     ", isChild: " + isChild +
+                                     ", participantType: " + p.participantType);
+                }
+
                 String updateSql = "UPDATE application_participants SET ParticipantType = ?, Name = ?, Gender = ?, RelationShip = ?, Occupation = ?, PhoneNumber = ?, HouseholdAddress = ?, MailingAddress = ?, Email = ?, BirthDate = ?, IsSuspended = ?, SuspendEnd = ?, CurrentOrder = ?, Status = ?, Reason = ?, ClassID = ?, ReviewDate = ? WHERE ApplicationID = ? AND NationalID = ?";
                 int updated = 0;
                 try {
@@ -448,13 +501,85 @@ public class ApplicationsJdbcRepository {
     }
 
     public void updateParticipantStatusReason(UUID id, String nationalID, String status, String reason, java.time.LocalDateTime reviewDate) {
-        String sql = "UPDATE application_participants SET Status = ?, Reason = ?, ReviewDate = ? WHERE ApplicationID = ? AND NationalID = ?";
+        System.out.println("[DEBUG updateParticipantStatusReason] ApplicationID: " + id + ", NationalID: " + nationalID + ", Status: " + status);
+
+        Integer currentOrder = null;
+
+        // 如果狀態為"候補中"，檢查並設置CurrentOrder
+        if (status != null && "候補中".equals(status)) {
+            System.out.println("[DEBUG] 狀態為候補中，開始處理 CurrentOrder");
+
+            // 先檢查該參與者是否為幼兒（ParticipantType = 0）
+            String checkParticipantTypeSql = "SELECT ParticipantType FROM application_participants WHERE ApplicationID = ? AND NationalID = ?";
+            Boolean isChild = null;
+            try {
+                Object participantTypeObj = jdbcTemplate.queryForObject(checkParticipantTypeSql, Object.class, id.toString(), nationalID);
+                if (participantTypeObj != null) {
+                    if (participantTypeObj instanceof Boolean) {
+                        isChild = !(Boolean) participantTypeObj; // false = 幼兒
+                    } else if (participantTypeObj instanceof Number) {
+                        isChild = ((Number) participantTypeObj).intValue() == 0;
+                    }
+                }
+                System.out.println("[DEBUG] ParticipantType 查詢結果: " + participantTypeObj + ", isChild: " + isChild);
+            } catch (Exception ex) {
+                System.out.println("[ERROR] 無法查詢 ParticipantType: " + ex.getMessage());
+            }
+
+            if (isChild != null && isChild) {
+                // 獲取該申請案件的InstitutionID
+                String getInstitutionIdSql = "SELECT InstitutionID FROM applications WHERE ApplicationID = ?";
+                java.util.UUID institutionId = null;
+                try {
+                    String institutionIdStr = jdbcTemplate.queryForObject(getInstitutionIdSql, String.class, id.toString());
+                    if (institutionIdStr != null) {
+                        institutionId = java.util.UUID.fromString(institutionIdStr);
+                        System.out.println("[DEBUG] InstitutionID: " + institutionId);
+                    }
+                } catch (Exception ex) {
+                    System.out.println("[ERROR] 無法獲取 InstitutionID: " + ex.getMessage());
+                }
+
+                if (institutionId != null) {
+                    // 查詢同機構的最大CurrentOrder值
+                    String getMaxOrderSql =
+                        "SELECT MAX(ap.CurrentOrder) FROM application_participants ap " +
+                        "INNER JOIN applications a ON ap.ApplicationID = a.ApplicationID " +
+                        "WHERE a.InstitutionID = ? " +
+                        "AND ap.CurrentOrder IS NOT NULL " +
+                        "AND ap.ParticipantType = 0";  // 只檢查幼兒記錄
+
+                    Integer maxOrder = null;
+                    try {
+                        maxOrder = jdbcTemplate.queryForObject(getMaxOrderSql, Integer.class, institutionId.toString());
+                        System.out.println("[DEBUG] 查詢到的最大 CurrentOrder: " + maxOrder);
+                    } catch (Exception ex) {
+                        System.out.println("[DEBUG] 無法查詢最大 CurrentOrder (可能沒有記錄): " + ex.getMessage());
+                    }
+
+                    // 如果沒有任何CurrentOrder，則設置為1；否則設置為最大值+1
+                    if (maxOrder == null) {
+                        currentOrder = 1;
+                        System.out.println("[DEBUG] 設置 CurrentOrder = 1 (首個候補)");
+                    } else {
+                        currentOrder = maxOrder + 1;
+                        System.out.println("[DEBUG] 設置 CurrentOrder = " + currentOrder + " (maxOrder + 1)");
+                    }
+                }
+            } else {
+                System.out.println("[DEBUG] 非幼兒記錄，不設置 CurrentOrder");
+            }
+        }
+
+        String sql = "UPDATE application_participants SET Status = ?, Reason = ?, ReviewDate = ?, CurrentOrder = ? WHERE ApplicationID = ? AND NationalID = ?";
         java.sql.Timestamp ts = null;
         if (reviewDate != null) ts = java.sql.Timestamp.valueOf(reviewDate);
         try {
-            jdbcTemplate.update(sql, status, reason, ts, id.toString(), nationalID);
+            int rowsAffected = jdbcTemplate.update(sql, status, reason, ts, currentOrder, id.toString(), nationalID);
+            System.out.println("[DEBUG] 更新完成，影響行數: " + rowsAffected + ", CurrentOrder: " + currentOrder);
         } catch (Exception ex) {
-            // ignore
+            System.out.println("[ERROR] 更新失敗: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 
