@@ -35,7 +35,9 @@ public class RevokeController {
     public ResponseEntity<Object> getRevokedApplications(
             @RequestParam(defaultValue = "0") int offset, // 分頁起始位置
             @RequestParam(defaultValue = "10") int size, // 每頁筆數
-            @RequestParam(required = false) String institutionID) { // 機構ID（可選）
+            @RequestParam(required = false) String institutionID, // 機構ID（可選）
+            @RequestParam(required = false) String caseNumber, // 案件編號（可選）
+            @RequestParam(required = false) String nationalID) { // 身分證字號（可選）
         // 參數驗證，offset 不可小於 0，size 必須大於 0
         if (offset < 0 || size <= 0) {
             return ResponseEntity.badRequest().build();
@@ -46,9 +48,9 @@ public class RevokeController {
         // 計算分頁頁碼，維持 repository page*size 的模式
         int page = offset / size;
         // 取得撤銷申請資料
-        List<RevokeApplicationDTO> content = revokeService.getRevokedApplications(page, size, institutionID);
+        List<RevokeApplicationDTO> content = revokeService.getRevokedApplications(page, size, institutionID, caseNumber, nationalID);
         // 取得撤銷申請總筆數
-        long totalElements = revokeService.getTotalRevokedApplications(institutionID);
+        long totalElements = revokeService.getTotalRevokedApplications(institutionID, caseNumber, nationalID);
         // 計算總頁數
         int totalPages = (int) Math.ceil((double) totalElements / size);
         // 判斷是否有下一頁
@@ -67,10 +69,10 @@ public class RevokeController {
         return ResponseEntity.ok(response);
     }
 
-    // 搜尋撤銷申請的 API，根據 CancellationID 和 NationalID 進行搜尋，支援分頁
+    // 搜尋撤銷申請的 API，根據 CaseNumber 和 NationalID 進行搜尋，支援分頁
     @GetMapping("/search")
     public ResponseEntity<Object> searchRevokedApplications(
-            @RequestParam(required = false) String cancellationID,
+            @RequestParam(required = false) String caseNumber,
             @RequestParam(required = false) String nationalID,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int size,
@@ -85,13 +87,13 @@ public class RevokeController {
 
         // 呼叫服務層搜尋
         List<RevokeApplicationDTO> content = revokeService.searchRevokedApplicationsPaged(
-                cancellationID != null ? cancellationID.trim() : null,
+                caseNumber != null ? caseNumber.trim() : null,
                 nationalID != null ? nationalID.trim() : null,
                 page, size,
                 institutionID != null ? institutionID.trim() : null
         );
         long totalElements = revokeService.countSearchRevokedApplications(
-                cancellationID != null ? cancellationID.trim() : null,
+                caseNumber != null ? caseNumber.trim() : null,
                 nationalID != null ? nationalID.trim() : null,
                 institutionID != null ? institutionID.trim() : null
         );

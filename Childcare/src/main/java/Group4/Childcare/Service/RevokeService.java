@@ -14,22 +14,22 @@ public class RevokeService {
     @Autowired
     private RevokesJdbcRepository revokesJdbcRepository;
 
-    public List<RevokeApplicationDTO> getRevokedApplications(int page, int size, String institutionID) {
-        return revokesJdbcRepository.findRevokedApplications(page, size, institutionID);
+    public List<RevokeApplicationDTO> getRevokedApplications(int page, int size, String institutionID, String caseNumber, String nationalID) {
+        return revokesJdbcRepository.findRevokedApplications(page, size, institutionID, caseNumber, nationalID);
     }
 
-    public long getTotalRevokedApplications(String institutionID) {
-        return revokesJdbcRepository.countRevokedApplications(institutionID);
+    public long getTotalRevokedApplications(String institutionID, String caseNumber, String nationalID) {
+        return revokesJdbcRepository.countRevokedApplications(institutionID, caseNumber, nationalID);
     }
 
     // 分頁搜尋撤銷申請
-    public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String cancellationID, String nationalID, int page, int size, String institutionID) {
-        return revokesJdbcRepository.searchRevokedApplicationsPaged(cancellationID, nationalID, page, size, institutionID);
+    public List<RevokeApplicationDTO> searchRevokedApplicationsPaged(String caseNumber, String nationalID, int page, int size, String institutionID) {
+        return revokesJdbcRepository.searchRevokedApplicationsPaged(caseNumber, nationalID, page, size, institutionID);
     }
 
     // 搜尋撤銷申請總數
-    public long countSearchRevokedApplications(String cancellationID, String nationalID, String institutionID) {
-        return revokesJdbcRepository.countSearchRevokedApplications(cancellationID, nationalID, institutionID);
+    public long countSearchRevokedApplications(String caseNumber, String nationalID, String institutionID) {
+        return revokesJdbcRepository.countSearchRevokedApplications(caseNumber, nationalID, institutionID);
     }
 
     // 取得撤銷資料

@@ -61,6 +61,13 @@ public class SimpleLoginController {
             result.put("message", "帳號未啟用或已被停用");
             return ResponseEntity.badRequest().body(result);
         }
+        // 禁止後台帳號由前台一般使用者頁面登入
+        if (user.getPermissionType() == 1 || user.getPermissionType() == 2) {
+            result.put("success", false);
+            result.put("message", "請由後台頁面登入");
+            return ResponseEntity.badRequest().body(result);
+        }
+
 
         // 登入成功
         Map<String, Object> userInfo = new HashMap<>();
