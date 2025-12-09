@@ -183,6 +183,50 @@ public class UsersController {
   }
 
   /**
+   * PUT /users/{id}/status
+   * 更新使用者帳號狀態（僅 accountStatus 欄位）
+   * body 範例: { "accountStatus": 0 }
+   */
+  @PutMapping("/{id}/status")
+  public ResponseEntity<Map<String, Object>> updateAccountStatus(@PathVariable UUID id, @RequestBody Map<String, Object> request) {
+    Map<String, Object> result = new HashMap<>();
+    try {
+      if (!request.containsKey("accountStatus")) {
+        result.put("success", false);
+        result.put("message", "Missing accountStatus in request body");
+        return ResponseEntity.badRequest().body(result);
+      }
+
+      Object raw = request.get("accountStatus");
+      Integer statusInt = null;
+      if (raw instanceof Number) {
+        statusInt = ((Number) raw).intValue();
+      } else if (raw instanceof String) {
+        try { statusInt = Integer.parseInt((String) raw); } catch (NumberFormatException e) { statusInt = null; }
+      }
+
+      if (statusInt == null || (statusInt != 1 && statusInt != 2)) {
+        result.put("success", false);
+        result.put("message", "accountStatus must be 1 or 2");
+        return ResponseEntity.badRequest().body(result);
+      }
+
+      Users updated = usersService.updateAccountStatus(id, statusInt);
+
+      result.put("success", true);
+      result.put("message", "Account status updated");
+      result.put("user", updated);
+      return ResponseEntity.ok(result);
+    } catch (Exception e) {
+      System.err.println("Error in updateAccountStatus: " + e.getMessage());
+      e.printStackTrace();
+      result.put("success", false);
+      result.put("message", "Failed to update account status");
+      return ResponseEntity.status(500).body(result);
+    }
+  }
+
+  /**
    * PUT /users/{id}/profile
    * 更新使用者基本資料（僅更新姓名、信箱、電話、地址）- 使用 JDBC
    * body 範例資料:

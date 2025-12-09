@@ -102,6 +102,34 @@ public class UsersService {
   }
 
   /**
+   * 安全更新 accountStatus（僅更新帳號狀態欄位）
+   * @param id 使用者 ID
+   * @param accountStatus 要設定的狀態（0 或 1）
+   * @return 更新後的 Users
+   */
+  public Users updateAccountStatus(UUID id, Integer accountStatus) {
+    // 使用 JDBC 部分更新 accountStatus
+    try {
+      int rows = jdbcRepository.updateAccountStatus(id, accountStatus);
+      if (rows == 0) {
+        throw new RuntimeException("User not found or no change: " + id);
+      }
+      // 透過 JDBC 重新讀取最新的 user 資料
+      Optional<Users> updated = jdbcRepository.findById(id);
+      if (updated.isPresent()) {
+        return updated.get();
+      } else {
+        // 這種情況不太可能發生，但提供回退
+        throw new RuntimeException("Failed to read updated user: " + id);
+      }
+    } catch (Exception e) {
+      System.err.println("Error in updateAccountStatus via JDBC: " + e.getMessage());
+      e.printStackTrace();
+      throw new RuntimeException("Failed to update account status via JDBC", e);
+    }
+  }
+
+  /**
    * 使用 JDBC 部分更新使用者基本資料（僅更新姓名、信箱、電話、地址）
    * @param id 使用者ID
    * @param name 姓名（可為 null，表示不更新）

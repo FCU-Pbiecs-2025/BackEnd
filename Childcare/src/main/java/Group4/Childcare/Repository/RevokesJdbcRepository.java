@@ -256,11 +256,11 @@ public class RevokesJdbcRepository {
 
     // 新增：插入一筆 cancellation 紀錄，回傳生成的 CancellationID
     @Transactional
-    public void insertCancellation(String applicationID, String abandonReason, String nationalID, LocalDate cancellationDate) {
+    public void insertCancellation(String applicationID, String abandonReason, String nationalID, LocalDate cancellationDate, String caseNumber) {
         // 產生 CancellationID 並寫入 cancellation 表
         String cancellationID = UUID.randomUUID().toString();
-        String sql = "INSERT INTO [dbo].[cancellation] ([CancellationID], [ApplicationID], [AbandonReason], [CancellationDate], [NationalID]) VALUES (?, ?, ?, ?, ?)";
-        int updated = jdbcTemplate.update(sql, cancellationID, applicationID, abandonReason, cancellationDate, nationalID);
+        String sql = "INSERT INTO [dbo].[cancellation] ([CancellationID], [ApplicationID], [AbandonReason], [CancellationDate], [NationalID], [CaseNumber]) VALUES (?, ?, ?, ?, ?, ?)";
+        int updated = jdbcTemplate.update(sql, cancellationID, applicationID, abandonReason, cancellationDate, nationalID, caseNumber);
         if (updated <= 0) throw new IllegalStateException("Failed to insert cancellation");
 
         // 更新 application_participants 的 Status 為「撤銷申請審核中」，條件為 ApplicationID 與 NationalID

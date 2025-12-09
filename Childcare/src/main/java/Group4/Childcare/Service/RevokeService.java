@@ -58,8 +58,8 @@ public class RevokeService {
     }
 
     // 新增：建立一筆 cancellation 並回傳 CancellationID
-    public void createCancellation(String applicationID, String abandonReason, String nationalID) {
+    public void createCancellation(String applicationID, String abandonReason, String nationalID, String caseNumber) {
         LocalDate today = LocalDate.now();
-        revokesJdbcRepository.insertCancellation(applicationID, abandonReason, nationalID, today);
+        revokesJdbcRepository.insertCancellation(applicationID, abandonReason, nationalID, today, caseNumber);
     }
 }

@@ -319,6 +319,22 @@ public class UserJdbcRepository {
             return Optional.empty();
         }
     }
+
+    /**
+     * 部分更新帳號狀態
+     * @param id 使用者ID
+     * @param accountStatus 新的帳號狀態
+     * @return 更新的行數
+     */
+    public int updateAccountStatus(UUID id, Integer accountStatus) {
+        String sql = "UPDATE " + TABLE_NAME + " SET AccountStatus = ? WHERE UserID = ?";
+        try {
+            int rowsUpdated = jdbcTemplate.update(sql, accountStatus, id.toString());
+            System.out.println("AccountStatus updated for UserID: " + id + ", rows: " + rowsUpdated);
+            return rowsUpdated;
+        } catch (Exception e) {
+            System.err.println("Error updating account status: " + e.getMessage());
+            throw new RuntimeException("Failed to update account status", e);
+        }
+    }
 }
-
-

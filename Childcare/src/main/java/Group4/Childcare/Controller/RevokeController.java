@@ -186,11 +186,12 @@ public class RevokeController {
         String nationalID = req.getNationalID() != null ? req.getNationalID().trim() : null;
         String abandonReason = req.getAbandonReason() != null ? req.getAbandonReason().trim() : null;
         String applicationID = req.getApplicationID() != null ? req.getApplicationID().trim() : null;
-        if (nationalID == null || nationalID.isEmpty() || abandonReason == null || abandonReason.isEmpty() || applicationID == null || applicationID.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "nationalID, abandonReason, applicationID 為必填"));
+        String caseNumber = req.getCaseNumber() != null ? req.getCaseNumber().trim() : null;
+        if (nationalID == null || nationalID.isEmpty() || abandonReason == null || abandonReason.isEmpty() || applicationID == null || applicationID.isEmpty() || caseNumber == null || caseNumber.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "nationalID, abandonReason, applicationID, caseNumber 為必填"));
         }
         try {
-            revokeService.createCancellation(applicationID, abandonReason, nationalID);
+            revokeService.createCancellation(applicationID, abandonReason, nationalID, caseNumber);
             LocalDate cancellationDate = LocalDate.now();
             return ResponseEntity.ok(Map.of("success", true, "cancellationDate", cancellationDate));
         } catch (Exception ex) {
