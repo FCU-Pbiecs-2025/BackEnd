@@ -99,6 +99,13 @@ public class ClassesJdbcRepository {
         } else {
             dto.setMaxAgeDescription(null);
         }
+        // map CurrentStudents into dto
+        Object curStudentsObj = rs.getObject("CurrentStudents");
+        if (curStudentsObj != null) {
+            dto.setCurrentStudents(((Number) curStudentsObj).intValue());
+        } else {
+            dto.setCurrentStudents(null);
+        }
         dto.setInstitutionName(rs.getString("InstitutionName"));
         String institutionIdStr = rs.getString("InstitutionID");
         if (institutionIdStr != null) {
@@ -225,7 +232,7 @@ public class ClassesJdbcRepository {
 
     // 使用offset分頁查詢，包含機構名稱 - 一次取指定筆數
     public List<ClassSummaryDTO> findWithOffsetAndInstitutionName(int offset, int limit) {
-        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription,c.CurrentStudents, i.InstitutionName, i.InstitutionID " +
                      "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID " +
                      "ORDER BY c.ClassID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         return jdbcTemplate.query(sql, CLASS_SUMMARY_ROW_MAPPER, offset, limit);
@@ -239,7 +246,7 @@ public class ClassesJdbcRepository {
      * @return 班級列表
      */
     public List<ClassSummaryDTO> findWithOffsetAndInstitutionNameByInstitutionID(int offset, int limit, UUID institutionID) {
-        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription,c.CurrentStudents, i.InstitutionName, i.InstitutionID " +
                      "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID " +
                      "WHERE c.InstitutionID = ? " +
                      "ORDER BY c.ClassID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -324,7 +331,7 @@ public class ClassesJdbcRepository {
      * @return List<ClassSummaryDTO>
      */
     public List<ClassSummaryDTO> findClassesByInstitutionName(String institutionName) {
-        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.CurrentStudents, i.InstitutionName, i.InstitutionID " +
                      "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID " +
                      "WHERE i.InstitutionName LIKE ? " +
                      "ORDER BY i.InstitutionName, c.ClassName";

@@ -16,5 +16,5 @@ public class ClassSummaryDTO {
     private String maxAgeDescription;
     private String institutionName;
     private UUID institutionID;
+    private Integer currentStudents; // added to hold current students count
 }
-
