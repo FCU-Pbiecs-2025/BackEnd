@@ -40,6 +40,11 @@ public class AnnouncementsService {
         return jdbcRepository.findAdminActiveBackend();
     }
 
+    // 前台公告摘要（Type=1, Status=1, 有效期間）
+    public List<AnnouncementSummaryDTO> getFrontData() {
+        return jdbcRepository.findFrontData();
+    }
+
     // 使用JDBC的offset分頁方法 - 一次取8筆
     public List<Announcements> getAnnouncementsWithOffsetJdbc(int offset) {
         return jdbcRepository.findWithOffset(offset, 8);

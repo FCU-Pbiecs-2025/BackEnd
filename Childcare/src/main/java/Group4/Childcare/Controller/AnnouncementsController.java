@@ -278,4 +278,11 @@ public class AnnouncementsController {
             return ResponseEntity.internalServerError().body("刪除公告失敗: " + e.getMessage());
         }
     }
+
+    // 前台公告摘要（Type=1, Status=1, 有效期間）
+    @GetMapping("/front")
+    public ResponseEntity<List<AnnouncementSummaryDTO>> getFrontData() {
+        List<AnnouncementSummaryDTO> summaries = service.getFrontData();
+        return ResponseEntity.ok(summaries);
+    }
 }
