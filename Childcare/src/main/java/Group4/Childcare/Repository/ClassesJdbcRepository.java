@@ -189,7 +189,7 @@ public class ClassesJdbcRepository {
 
     // Find all with institution name using LEFT JOIN
     public List<ClassSummaryDTO> findAllWithInstitutionName() {
-        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription,c.CurrentStudents, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
+        String sql = "SELECT c.ClassID, c.ClassName, c.Capacity, c.MinAgeDescription, c.MaxAgeDescription, i.InstitutionName, i.InstitutionID " +
                      "FROM " + TABLE_NAME + " c LEFT JOIN institutions i ON c.InstitutionID = i.InstitutionID";
         return jdbcTemplate.query(sql, CLASS_SUMMARY_ROW_MAPPER);
     }
