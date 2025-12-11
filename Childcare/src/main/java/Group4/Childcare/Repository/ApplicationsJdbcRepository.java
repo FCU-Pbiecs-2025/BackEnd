@@ -139,6 +139,8 @@ public class ApplicationsJdbcRepository {
         String sql = "SELECT a.ApplicationID, a.ApplicationDate, i.InstitutionName, " +
                 // 加入身分別欄位
                 "a.IdentityType, " +
+                // 加入案件流水號欄位
+                "a.CaseNumber, " +
                 // 從 applications 帶出四個附件欄位
                 "a.AttachmentPath, a.AttachmentPath1, a.AttachmentPath2, a.AttachmentPath3, " +
                 "ap.ParticipantID, ap.ParticipantType, ap.NationalID, ap.Name, ap.Gender, ap.RelationShip, ap.Occupation, " +
@@ -173,6 +175,16 @@ public class ApplicationsJdbcRepository {
                     }
                 } catch (Exception ex) {
                     dto.identityType = null;
+                }
+
+                // 映射案件流水號 CaseNumber -> ApplicationCaseDTO.caseNumber
+                try {
+                    Object caseNumberObj = rs.getObject("CaseNumber");
+                    if (caseNumberObj != null) {
+                        dto.caseNumber = ((Number) caseNumberObj).longValue();
+                    }
+                } catch (Exception ex) {
+                    dto.caseNumber = null;
                 }
 
                 // 映射附件欄位

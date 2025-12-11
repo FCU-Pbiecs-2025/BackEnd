@@ -19,6 +19,8 @@ public class ApplicationCaseDTO {
     public LocalDate applicationDate;
     // 申請機構名稱
     public String institutionName;
+    // 案件流水號
+    public Long caseNumber;
 
     // ★ 新增附件欄位
     public String attachmentPath;
